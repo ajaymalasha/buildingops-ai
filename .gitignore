@@ -1,0 +1,29 @@
+# Environment and secrets: only the documented example is committed.
+.env
+.env.*
+!.env.example
+
+# Working notes kept beside the code but not part of it (slice ledger).
+.context/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+.next/
+
+# Local uploads and generated files
+/var/
+
+# OS and editors
+.DS_Store
+.idea/
+.vscode/
