@@ -1,0 +1,147 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "slice/**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Superuser of the service container, used once to create the application's roles.
+  PGHOST: localhost
+  PGUSER: postgres
+  PGPASSWORD: postgres
+
+jobs:
+  api:
+    name: API (lint, types, tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready --username postgres"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - run: uv sync --locked
+      - name: Create database roles and the test database
+        run: BUILDINGOPS_DATABASES=buildingops_test ../../infra/postgres/bootstrap.sh
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      - run: uv run pytest --cov
+      - name: OpenAPI document is up to date
+        run: |
+          uv run buildingops openapi --output openapi.json
+          git diff --exit-code -- openapi.json
+
+  web:
+    name: Web (lint, types, tests, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm typecheck
+      - run: pnpm test
+      - name: Typed API client is up to date
+        run: |
+          pnpm gen:api
+          git diff --exit-code -- src/lib/api/schema.d.ts
+      - run: pnpm build
+        env:
+          AUTH_SECRET: ci-build-only
+
+  e2e:
+    name: End to end (browser, API, database)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready --username postgres"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: uv sync --locked
+        working-directory: apps/api
+      - run: pnpm install --frozen-lockfile
+        working-directory: apps/web
+      - run: pnpm exec playwright install --with-deps --only-shell chromium
+        working-directory: apps/web
+      - name: Create database roles and the e2e database
+        run: BUILDINGOPS_DATABASES=buildingops_e2e ./infra/postgres/bootstrap.sh
+      - run: pnpm e2e
+        working-directory: apps/web
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-traces
+          path: apps/web/test-results
+          retention-days: 7
+
+  docker:
+    name: Docker (build images, start the stack)
+    runs-on: ubuntu-latest
+    env:
+      AUTH_SECRET: ci-only-secret-for-the-smoke-test
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker compose build
+      - name: Migrate and seed
+        run: docker compose run --rm migrate
+      - name: Start the API and the web app
+        run: docker compose up --detach --wait api web
+      - name: The API is ready and the web app serves the sign-in page
+        run: |
+          curl --fail --silent --show-error http://localhost:8000/readyz
+          curl --fail --silent --show-error --output /dev/null http://localhost:3000/login
+      - name: A seeded account can sign in through the API
+        run: |
+          curl --fail --silent --show-error http://localhost:8000/api/v1/auth/login \
+            --header 'Content-Type: application/json' \
+            --data '{"email":"dana.whitfield@meridianfs.example","password":"BuildingOps-Demo-2026"}' \
+            --output /dev/null
+      - name: Logs
+        if: failure()
+        run: docker compose logs --no-color
+      - run: docker compose down --volumes
+        if: always()

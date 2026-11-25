@@ -1,0 +1,82 @@
+# The whole stack in containers: database, migrations and demo data, API, web app.
+#
+#   export AUTH_SECRET=$(openssl rand -base64 32)
+#   docker compose up --build
+#
+# Then open http://localhost:3000. For day-to-day development, running the two apps
+# directly (`make dev`) is faster; see README.md.
+
+name: buildingops
+
+x-database-urls: &database-urls
+  DATABASE_URL: postgresql+psycopg://buildingops_app:${BUILDINGOPS_DB_APP_PASSWORD:-buildingops_app}@db:5432/buildingops
+  DATABASE_ADMIN_URL: postgresql+psycopg://buildingops_owner:${BUILDINGOPS_DB_OWNER_PASSWORD:-buildingops_owner}@db:5432/buildingops
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      # Read by the bootstrap script, which creates the two roles and the database.
+      BUILDINGOPS_DATABASES: buildingops
+      BUILDINGOPS_DB_OWNER_PASSWORD: ${BUILDINGOPS_DB_OWNER_PASSWORD:-buildingops_owner}
+      BUILDINGOPS_DB_APP_PASSWORD: ${BUILDINGOPS_DB_APP_PASSWORD:-buildingops_app}
+    volumes:
+      - db-data:/var/lib/postgresql
+      - ./infra/postgres/bootstrap.sh:/docker-entrypoint-initdb.d/10-bootstrap.sh:ro
+    ports:
+      # 5433 on the host, so it does not collide with a Postgres you already run.
+      - "${DB_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --username postgres --dbname buildingops"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Runs once: applies migrations as the owner role and loads the demo accounts.
+  migrate:
+    build: ./apps/api
+    command: ["sh", "-c", "alembic upgrade head && buildingops seed"]
+    environment:
+      <<: *database-urls
+      ENVIRONMENT: development
+      SEED_DEMO_PASSWORD: ${SEED_DEMO_PASSWORD:-BuildingOps-Demo-2026}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build: ./apps/api
+    environment:
+      <<: *database-urls
+      ENVIRONMENT: development
+      LOG_FORMAT: console
+      # The web container is the only client, and it forwards the browser's address.
+      # In production, list the proxy's address here instead of trusting every peer.
+      FORWARDED_ALLOW_IPS: "*"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "${API_PORT:-8000}:8000"
+
+  web:
+    build:
+      context: ./apps/web
+      args:
+        NEXT_PUBLIC_DEMO_MODE: "true"
+        NEXT_PUBLIC_DEMO_PASSWORD: ${SEED_DEMO_PASSWORD:-BuildingOps-Demo-2026}
+    environment:
+      API_INTERNAL_URL: http://api:8000
+      AUTH_URL: http://localhost:${WEB_PORT:-3000}
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET, for example with `openssl rand -base64 32`}
+      AUTH_TRUST_HOST: "true"
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+
+volumes:
+  db-data:
