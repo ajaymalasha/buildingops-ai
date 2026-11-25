@@ -1,0 +1,98 @@
+[project]
+name = "buildingops-api"
+version = "0.1.0"
+description = "BuildingOps AI API: operations platform for commercial building services companies"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "alembic>=1.14",
+    "argon2-cffi>=23.1",
+    "email-validator>=2.2",
+    "fastapi>=0.121",
+    "psycopg[binary]>=3.2",
+    "pydantic>=2.10",
+    "pydantic-settings>=2.7",
+    "sqlalchemy>=2.0.36",
+    "structlog>=24.4",
+    "tzdata>=2026.6",
+    "uvicorn[standard]>=0.32",
+]
+
+[project.scripts]
+buildingops = "buildingops.cli:main"
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.16.2",
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.10,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "buildingops"
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",  # pycodestyle, pyflakes
+    "I",            # import order
+    "UP",           # modern syntax
+    "B",            # bugbear
+    "SIM",          # simplifications
+    "C4",           # comprehensions
+    "RUF",          # ruff-specific
+    "DTZ",          # timezone-aware datetimes only
+    "T20",          # no stray print()
+    "PT",           # pytest style
+    "S",            # security (bandit)
+    "N",            # naming
+]
+ignore = [
+    "B008",  # FastAPI's Depends() in argument defaults is the framework's idiom
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]  # asserts and literal test credentials are expected in tests
+# Migration file names start with a revision number. Their DDL is assembled from constants
+# in the same file; no external input ever reaches a migration.
+"migrations/**" = ["N999", "S608"]
+"src/buildingops/cli.py" = ["T20"]     # the CLI prints by design
+"src/buildingops/seed/**" = ["S311"]   # seeded, non-cryptographic randomness for demo data
+
+[tool.ruff.lint.isort]
+known-first-party = ["buildingops"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+plugins = ["pydantic.mypy"]
+mypy_path = "src"
+packages = ["buildingops"]
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["argon2.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+source = ["buildingops"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

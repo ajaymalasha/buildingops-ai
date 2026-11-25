@@ -1,0 +1,2684 @@
+{
+  "components": {
+    "schemas": {
+      "AuditLogRead": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_name": {
+            "title": "Actor Name",
+            "type": "string"
+          },
+          "actor_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Role"
+          },
+          "actor_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor User Id"
+          },
+          "changes": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changes"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "actor_user_id",
+          "actor_name",
+          "actor_role",
+          "action",
+          "entity_type",
+          "entity_id",
+          "summary",
+          "changes",
+          "request_id"
+        ],
+        "title": "AuditLogRead",
+        "type": "object"
+      },
+      "ChangePasswordRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "current_password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Current Password",
+            "type": "string"
+          },
+          "new_password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "New Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "title": "ChangePasswordRequest",
+        "type": "object"
+      },
+      "FieldProblem": {
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "message"
+        ],
+        "title": "FieldProblem",
+        "type": "object"
+      },
+      "Health": {
+        "properties": {
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "version"
+        ],
+        "title": "Health",
+        "type": "object"
+      },
+      "LoginRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "maxLength": 320,
+            "minLength": 3,
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest",
+        "type": "object"
+      },
+      "LoginResponse": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "me": {
+            "$ref": "#/components/schemas/MeRead"
+          },
+          "session_token": {
+            "description": "Bearer token. Shown once; store it server-side.",
+            "title": "Session Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_token",
+          "expires_at",
+          "me"
+        ],
+        "title": "LoginResponse",
+        "type": "object"
+      },
+      "MeRead": {
+        "description": "The signed-in user, their active organization and what they may do in it.",
+        "properties": {
+          "memberships": {
+            "items": {
+              "$ref": "#/components/schemas/MembershipSummary"
+            },
+            "title": "Memberships",
+            "type": "array"
+          },
+          "organization": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrganizationRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "permissions": {
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "title": "Permissions",
+            "type": "array"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "session_expires_at": {
+            "format": "date-time",
+            "title": "Session Expires At",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserRead"
+          }
+        },
+        "required": [
+          "user",
+          "organization",
+          "role",
+          "permissions",
+          "memberships",
+          "session_expires_at"
+        ],
+        "title": "MeRead",
+        "type": "object"
+      },
+      "MemberCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Full Name",
+            "type": "string"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Initial password. Required unless the email already has an account.",
+            "title": "Password"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "email",
+          "full_name",
+          "role"
+        ],
+        "title": "MemberCreate",
+        "type": "object"
+      },
+      "MemberCreated": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "existing_account": {
+            "description": "True when the email already had an account and only access was added.",
+            "title": "Existing Account",
+            "type": "boolean"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "description": "Membership id.",
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_login_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Login At"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MembershipStatus"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "email",
+          "full_name",
+          "role",
+          "status",
+          "title",
+          "last_login_at",
+          "created_at",
+          "existing_account"
+        ],
+        "title": "MemberCreated",
+        "type": "object"
+      },
+      "MemberRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "description": "Membership id.",
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_login_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Login At"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MembershipStatus"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "email",
+          "full_name",
+          "role",
+          "status",
+          "title",
+          "last_login_at",
+          "created_at"
+        ],
+        "title": "MemberRead",
+        "type": "object"
+      },
+      "MemberUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MembershipStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "MemberUpdate",
+        "type": "object"
+      },
+      "MembershipStatus": {
+        "enum": [
+          "active",
+          "suspended"
+        ],
+        "title": "MembershipStatus",
+        "type": "string"
+      },
+      "MembershipSummary": {
+        "properties": {
+          "organization": {
+            "$ref": "#/components/schemas/OrganizationSummary"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          }
+        },
+        "required": [
+          "organization",
+          "role"
+        ],
+        "title": "MembershipSummary",
+        "type": "object"
+      },
+      "OrganizationCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "admin_email": {
+            "format": "email",
+            "title": "Admin Email",
+            "type": "string"
+          },
+          "admin_full_name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Admin Full Name",
+            "type": "string"
+          },
+          "admin_password": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required unless the administrator already has an account.",
+            "title": "Admin Password"
+          },
+          "currency": {
+            "default": "USD",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "legal_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Name"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Generated from the name when omitted.",
+            "title": "Slug"
+          },
+          "timezone": {
+            "default": "America/New_York",
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "admin_email",
+          "admin_full_name"
+        ],
+        "title": "OrganizationCreate",
+        "type": "object"
+      },
+      "OrganizationRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "legal_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Name"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrganizationStatus"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "legal_name",
+          "timezone",
+          "currency",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "OrganizationRead",
+        "type": "object"
+      },
+      "OrganizationStatus": {
+        "enum": [
+          "active",
+          "suspended"
+        ],
+        "title": "OrganizationStatus",
+        "type": "string"
+      },
+      "OrganizationStatusUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/OrganizationStatus"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "OrganizationStatusUpdate",
+        "type": "object"
+      },
+      "OrganizationSummary": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ],
+        "title": "OrganizationSummary",
+        "type": "object"
+      },
+      "OrganizationUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{3}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "legal_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Name"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          }
+        },
+        "title": "OrganizationUpdate",
+        "type": "object"
+      },
+      "Page_AuditLogRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditLogRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "Page[AuditLogRead]",
+        "type": "object"
+      },
+      "Page_MemberRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "Page[MemberRead]",
+        "type": "object"
+      },
+      "Page_PlatformOrganizationRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PlatformOrganizationRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "Page[PlatformOrganizationRead]",
+        "type": "object"
+      },
+      "Permission": {
+        "enum": [
+          "organization:read",
+          "organization:update",
+          "members:read",
+          "members:manage",
+          "audit:read",
+          "platform:organizations"
+        ],
+        "title": "Permission",
+        "type": "string"
+      },
+      "PlatformOrganizationRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "legal_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Name"
+          },
+          "member_count": {
+            "title": "Member Count",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrganizationStatus"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "legal_name",
+          "timezone",
+          "currency",
+          "status",
+          "created_at",
+          "updated_at",
+          "member_count"
+        ],
+        "title": "PlatformOrganizationRead",
+        "type": "object"
+      },
+      "Problem": {
+        "description": "Error body returned by every failing endpoint.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FieldProblem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errors"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "status",
+          "code"
+        ],
+        "title": "Problem",
+        "type": "object"
+      },
+      "Readiness": {
+        "properties": {
+          "database": {
+            "title": "Database",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "database"
+        ],
+        "title": "Readiness",
+        "type": "object"
+      },
+      "Role": {
+        "enum": [
+          "platform_admin",
+          "company_admin",
+          "operations_manager",
+          "supervisor",
+          "employee",
+          "customer",
+          "vendor"
+        ],
+        "title": "Role",
+        "type": "string"
+      },
+      "SwitchOrganizationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id"
+        ],
+        "title": "SwitchOrganizationRequest",
+        "type": "object"
+      },
+      "UserRead": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_platform_admin": {
+            "title": "Is Platform Admin",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "full_name",
+          "is_platform_admin"
+        ],
+        "title": "UserRead",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "description": "Session token returned by `POST /api/v1/auth/login`.",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "\nOperations platform API for commercial building services companies.\n\n**Authentication.** Sign in with `POST /api/v1/auth/login` and send the returned session\ntoken as `Authorization: Bearer <token>`. Every request runs inside the signed-in user's\nactive organization; data belonging to other organizations is not reachable.\n\n**Errors.** Failures return an RFC 9457 problem document with a stable `code`, and `errors`\nfor field-level problems.\n",
+    "title": "BuildingOps AI API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/audit-logs": {
+      "get": {
+        "operationId": "list_audit_logs",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "entity_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 60,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "entity_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity Id"
+            }
+          },
+          {
+            "description": "An exact action (`member.added`) or a prefix (`member`).",
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "An exact action (`member.added`) or a prefix (`member`).",
+              "title": "Action"
+            }
+          },
+          {
+            "in": "query",
+            "name": "actor_user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Actor User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
+            }
+          },
+          {
+            "description": "Search summary and actor.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search summary and actor.",
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AuditLogRead_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List audit log entries for the active organization, newest first",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "operationId": "change_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Change your password and sign out your other sessions",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Sign in with email and password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "End the current session",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "read_me",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "The signed-in user, active organization and permissions",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/switch-organization": {
+      "post": {
+        "operationId": "switch_organization",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchOrganizationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Make another organization active",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/members": {
+      "get": {
+        "operationId": "list_members",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Search name and email.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search name and email.",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Role"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Role"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/MembershipStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "description": "One of name, email, role, created_at.",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "One of name, email, role, created_at.",
+              "title": "Sort"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_MemberRead_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List members of the active organization",
+        "tags": [
+          "members"
+        ]
+      },
+      "post": {
+        "operationId": "create_member",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add a member",
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/api/v1/members/{member_id}": {
+      "get": {
+        "operationId": "read_member",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "member_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Member Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get a member",
+        "tags": [
+          "members"
+        ]
+      },
+      "patch": {
+        "operationId": "update_member",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "member_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Member Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Change a member's role, status or title",
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/api/v1/organization": {
+      "get": {
+        "operationId": "read_organization",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "The active organization's profile",
+        "tags": [
+          "organization"
+        ]
+      },
+      "patch": {
+        "operationId": "update_organization",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update the active organization's profile",
+        "tags": [
+          "organization"
+        ]
+      }
+    },
+    "/api/v1/platform/organizations": {
+      "get": {
+        "operationId": "list_organizations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/OrganizationStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_PlatformOrganizationRead_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List every organization on the platform",
+        "tags": [
+          "platform"
+        ]
+      },
+      "post": {
+        "operationId": "create_organization",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformOrganizationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create an organization and its first company administrator",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/v1/platform/organizations/{organization_id}": {
+      "patch": {
+        "operationId": "set_organization_status",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Organization Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationStatusUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformOrganizationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Activate or suspend an organization",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/healthz": {
+      "get": {
+        "operationId": "healthz",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Liveness: the process is running",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "readyz",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Readiness"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Readiness: dependencies are reachable",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  }
+}
