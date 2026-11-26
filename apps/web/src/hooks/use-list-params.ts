@@ -5,6 +5,17 @@ import { useCallback } from "react";
 
 type Changes = Record<string, string | number | null | undefined>;
 
+type Options = {
+  /**
+   * Parameters that choose what the page shows rather than narrow it: the tab that is
+   * open, the week or the building on show. They are not counted as filters, and
+   * clearing the filters leaves them alone.
+   */
+  view?: readonly string[];
+};
+
+const NO_VIEW: readonly string[] = [];
+
 /**
  * List state (search, filters, sort, page) kept in the URL.
  *
@@ -12,14 +23,24 @@ type Changes = Record<string, string | number | null | undefined>;
  * filter returns to the first page, because page 4 of the old result set means nothing
  * in the new one.
  */
-export function useListParams() {
+export function useListParams({ view = NO_VIEW }: Options = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  // Callers pass a new array each time they render. What it holds is what matters.
+  const viewKeys = view.join(",");
 
   const get = useCallback((key: string) => searchParams.get(key) || undefined, [searchParams]);
 
   const page = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
+
+  const go = useCallback(
+    (next: URLSearchParams) => {
+      const query = next.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    },
+    [pathname, router],
+  );
 
   const update = useCallback(
     (changes: Changes) => {
@@ -37,15 +58,25 @@ export function useListParams() {
           next.set(key, String(value));
         }
       }
-      const query = next.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      go(next);
     },
-    [pathname, router, searchParams],
+    [go, searchParams],
   );
 
-  const hasFilters = [...searchParams.keys()].some((key) => key !== "page" && key !== "sort");
+  const isFilter = useCallback(
+    (key: string) => key !== "page" && key !== "sort" && !viewKeys.split(",").includes(key),
+    [viewKeys],
+  );
 
-  const clear = useCallback(() => router.replace(pathname, { scroll: false }), [pathname, router]);
+  const hasFilters = [...searchParams.keys()].some(isFilter);
+
+  const clear = useCallback(() => {
+    const next = new URLSearchParams();
+    for (const [key, value] of searchParams) {
+      if (viewKeys.split(",").includes(key)) next.set(key, value);
+    }
+    go(next);
+  }, [go, searchParams, viewKeys]);
 
   return { get, page, update, clear, hasFilters };
 }

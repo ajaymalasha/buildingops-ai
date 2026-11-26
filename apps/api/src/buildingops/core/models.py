@@ -6,7 +6,16 @@ from datetime import UTC, datetime
 from typing import Any
 
 import sqlalchemy as sa
-from sqlalchemy import DateTime, ForeignKey, ForeignKeyConstraint, MetaData, UniqueConstraint, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+    MetaData,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # Deterministic constraint names, so migrations can refer to them and errors are readable.
@@ -91,11 +100,46 @@ class TenantMixin:
 
 
 def tenant_fk(
-    column: str, target_table: str, *, ondelete: str = "RESTRICT"
+    column: str, target_table: str, *, ondelete: str = "RESTRICT", name: str | None = None
 ) -> ForeignKeyConstraint:
-    """Composite foreign key `(organization_id, <column>)` to another tenant table."""
+    """Composite foreign key `(organization_id, <column>)` to another tenant table.
+
+    Give it a `name` only when the conventional one would be longer than the 63
+    characters PostgreSQL keeps of an identifier.
+    """
     return ForeignKeyConstraint(
         ["organization_id", column],
         [f"{target_table}.organization_id", f"{target_table}.id"],
         ondelete=ondelete,
+        name=name,
+    )
+
+
+class DecisionStatus(enum.StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class DecisionMixin:
+    """A row that is entered as pending and then approved or rejected by a person.
+
+    The name of whoever decided is copied in, as the actor's is in the audit log, so the
+    row still reads correctly after a rename. `core/decisions.py` makes the moves, and
+    `decided_unless_pending` belongs in the table's constraints.
+    """
+
+    status: Mapped[DecisionStatus] = mapped_column(default=DecisionStatus.PENDING, sort_order=50)
+    decided_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), sort_order=51
+    )
+    decided_by_name: Mapped[str | None] = mapped_column(String(200), sort_order=52)
+    decided_at: Mapped[datetime | None] = mapped_column(sort_order=53)
+    rejection_reason: Mapped[str | None] = mapped_column(String(500), sort_order=54)
+
+
+def decided_unless_pending() -> CheckConstraint:
+    """A pending row carries no decision, and a decided one says when it was made."""
+    return CheckConstraint(
+        "(status = 'pending') = (decided_at IS NULL)", name="decided_unless_pending"
     )

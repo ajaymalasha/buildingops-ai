@@ -2,7 +2,8 @@
 
 Everything here is invented: the companies, the people and the street addresses. Cities,
 states and ZIP codes are real so that the addresses read as plausible. `master_data.py`
-turns these lists into rows.
+turns these lists into rows, and `operations/` gives each organization a year of work on
+top of them.
 """
 
 from dataclasses import dataclass
@@ -84,6 +85,9 @@ class ContractSpec:
     monthly_fee: str | None = None
     # How many of the customer's buildings it covers, in catalog order. None covers all.
     building_count: int | None = None
+    # For a contract that buys one kind of work on top of a customer's main agreement:
+    # the job roles whose time at its buildings is booked to it instead.
+    job_roles: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,6 +105,9 @@ class DirectorySpec:
     onboarding: int
     on_leave: int
     terminated: int
+    # How much there is in the year of history: work orders raised and expenses entered.
+    work_orders: int
+    expenses: int
 
 
 FIRST_NAMES: tuple[str, ...] = (
@@ -516,6 +523,7 @@ MERIDIAN = DirectorySpec(
             24,
             monthly_fee="18400.00",
             building_count=2,
+            job_roles=("Day Porter",),
         ),
         ContractSpec(
             "Larkspur Medical Partners",
@@ -628,6 +636,8 @@ MERIDIAN = DirectorySpec(
     onboarding=4,
     on_leave=3,
     terminated=5,
+    work_orders=600,
+    expenses=900,
 )
 
 # --- Northgate Building Services: Chicago and its suburbs --------------------------------
@@ -838,6 +848,8 @@ NORTHGATE = DirectorySpec(
     onboarding=1,
     on_leave=1,
     terminated=2,
+    work_orders=150,
+    expenses=200,
 )
 
 DIRECTORIES: tuple[DirectorySpec, ...] = (MERIDIAN, NORTHGATE)

@@ -89,8 +89,11 @@ See [decision 0002](decisions/0002-authentication.md).
   and the web app's client types are generated from it; CI fails if either is stale.
 - Errors are RFC 9457 problem documents with a stable `code`, field-level `errors`, and the
   `request_id` that also appears in the logs.
-- Lists take `page`, `page_size`, `sort` (`-name` for descending) and `q`, and return
-  `{items, total, page, page_size}`. Sort fields are whitelisted.
+- Lists take `page`, `page_size`, `sort` (`-name` for descending) and, where there is text
+  to search, `q`. They return `{items, total, page, page_size}`. Sort fields are
+  whitelisted. Lists of dated records take `from` and `to`, both days included. A list
+  embeds the names it shows (a work order's building, a timesheet's employee), so a table
+  needs one request.
 - One database transaction per request. It commits before the response is sent, so a client
   never receives success for a write that then failed. Services never commit: the caller
   that created the session owns the transaction.
@@ -123,6 +126,55 @@ above and add a few of their own.
   way: lookups inside the organization, code assignment, applying a PATCH, archiving, and
   the audit entry for each change. Validation and read models stay in each module.
 
+## Operational records
+
+Work orders, shifts, timesheets, expenses, invoices and payments are the records that the
+dashboard, approvals and billing compute from. They exist in the API, in the demo data and
+in the web app. Invoices and payments can only be read, in the API and on screen alike:
+generating invoices from costs and recording payments belong to the billing module, which
+is not built.
+
+- **Work orders** move through a fixed table of statuses (`ALLOWED_MOVES` in
+  `modules/workorders/service.py`). Any other move is a 409 that names the moves that are
+  allowed. Starting work records when it started, completing it records when it was
+  finished, and reopening it clears that. The status is changed through its own endpoint,
+  never by editing the work order.
+- **History.** Every status change, every change of assignee or vendor and every comment
+  adds an entry to the work order's history, with the author's name copied in. Nothing
+  edits or removes an entry.
+- **Shifts** of one employee cannot overlap. The service checks first, so that it can say
+  which shift is in the way. An exclusion constraint on the table is the guarantee: it
+  also stops two requests that pass the check at the same moment, and the loser gets a
+  409. A cancelled shift stays on record and frees its time.
+- **Decisions.** A timesheet or an expense is entered as pending, then approved or rejected
+  with a reason, and can be reopened. It can be edited only while it is pending. The three
+  moves and their audit entries are shared (`core/decisions.py`). Nobody can approve their
+  own time: the API refuses when the caller's login is linked to the timesheet's employee.
+  Supervisors approve time. Approving expenses and reading invoices stay with managers.
+- **Money.** A timesheet copies the employee's hourly rate when it is entered, so a later
+  raise does not reprice past work, and its labor cost is worked out by one function
+  (`modules/timesheets/costing.py`) on every write. Neither is accepted from a client.
+  Amounts are rounded half up to cents by `core/money.py` and nowhere else, and are
+  strings in JSON. The rate and the cost on a timesheet are hidden like other pay rates.
+- **Contracts.** A work order, timesheet or expense booked to a contract must be for a
+  building that contract covers, because what a contract is billed will be worked out
+  from the records booked to it.
+- **History outlives master data.** A record keeps the building, person or vendor it was
+  for after they are archived, and goes on showing them. A reference is checked for a
+  live row only when a request makes it, not when a record that already has it is saved
+  again.
+- **Days and times.** A time in a request must carry its UTC offset and is stored in UTC.
+  "Today", for what is overdue, and the days a list of shifts asks for are the
+  organization's, in its time zone.
+- **Invoices** are stored with their totals. What is still owed and whether it is overdue
+  are worked out when an invoice is read.
+- **Demo data.** `buildingops seed` gives each demo organization a year of this, dated
+  relative to the day it runs: time for everyone assigned to a building, six weeks of
+  schedule, work orders with their history, expenses, and monthly invoices with payments.
+  The invoices are worked out from the seeded timesheets and expenses by a stand-in for
+  the billing engine (`seed/operations/billing.py`), and the tests recompute them from
+  the database to the cent.
+
 ## Web app
 
 - The App Router with Cache Components: each route has a prerendered static shell, and the
@@ -145,15 +197,44 @@ above and add a few of their own.
   `employees:read_compensation` there is no pay column, and without a write permission
   there are no buttons that change anything. The API enforces the same rules on its own.
 
+The screens for operational records follow the same rules and add a few of their own.
+
+- **Work orders** open on the live backlog. A row opens the work order in a drawer for
+  reading: its details, its history newest first, and a button for each move the API
+  allows from its status. The table of moves is copied from the API
+  (`features/work-orders/work-order-status.ts`) only to decide which buttons to show. The
+  API still decides, and refuses any other move. Nothing reads the API's table from the
+  web app: a unit test checks the copy against the API's table written out again, so the
+  two are changed together, by hand.
+- **The schedule** is a weekly roster for one building: a row for each person, a column
+  for each day. Cancelled shifts are left off unless asked for, and never count towards
+  anyone's hours.
+- **Timesheets** are an approval queue: a tab for each status with the API's counts, and
+  pending rows that can be ticked and approved together. Only what is on screen and
+  still pending is ever sent. **Expenses** are a list with the same decisions, one at a
+  time.
+- **Invoices** are read only. The drawer shows the API's totals, and adds up the lines
+  and the payments it lists to show that they come to them, saying so if they do not.
+- **Times.** The API takes and returns instants. A shift or a booking is entered as a
+  day and a clock time where the organization is, and `lib/dates.ts` turns one into the
+  other, including on the two nights a year when the clocks change. A time nobody
+  touched is not sent back: the clock cannot say which of two 1:30 AMs was meant, or
+  which second.
+- **Sums.** Where the browser adds up what is on screen (the hours ticked for approval,
+  the lines of an invoice) it does so on the decimal strings themselves, in
+  `lib/decimal.ts`. It never works out what anything costs: a timesheet's rate and labor
+  cost are the API's, and the forms do not send them.
+
 ## Testing
 
 | Level | What it covers | Where |
 | --- | --- | --- |
 | API | Endpoints, permissions, tenancy, sessions, audit, against real PostgreSQL as the app role | `apps/api/tests` |
 | Schema invariants | Row-level security and model/migration drift; every migration runs down and up | `apps/api/tests/test_schema_invariants.py` |
-| Database rules | CHECK constraints, partial unique indexes and tenant-safe references, written to as the owner role | `apps/api/tests/test_master_data_constraints.py` |
-| Web unit and component | Proxy route, session handling, formatting, shared components, what each form checks and sends | `apps/web/src/**/*.test.ts(x)` |
-| End to end | Sign-in, each role, tenant isolation, and keeping master data, in a real browser against the real stack | `apps/web/e2e` |
+| Database rules | CHECK and exclusion constraints, partial unique indexes and tenant-safe references, written to as the owner role | `apps/api/tests/test_master_data_constraints.py`, `test_operational_constraints.py` |
+| Demo data | The seed is repeatable, can run on any day, and its invoices add up to its costs | `apps/api/tests/test_seed_and_cli.py` |
+| Web unit and component | Proxy route, session handling, formatting, time zones and week arithmetic, exact decimal sums, shared components, what each form checks and sends, which status moves are offered | `apps/web/src/**/*.test.ts(x)` |
+| End to end | Sign-in, each role, tenant isolation, keeping master data, and running operations (work orders, the schedule, approving time and expenses, reading invoices), in a real browser against the real stack | `apps/web/e2e` |
 
 ## Planned (not built yet)
 

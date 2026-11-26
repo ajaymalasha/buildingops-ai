@@ -2,11 +2,16 @@ import {
   BriefcaseBusiness,
   Building,
   Building2,
+  CalendarDays,
+  ClipboardList,
+  Clock,
   FilePenLine,
   Globe,
   Handshake,
   IdCard,
   LayoutDashboard,
+  Receipt,
+  ReceiptText,
   ScrollText,
   Truck,
   Users,
@@ -39,6 +44,12 @@ export const NAVIGATION: NavSection[] = [
   {
     label: "Operations",
     items: [
+      {
+        label: "Work orders",
+        href: "/work-orders",
+        icon: ClipboardList,
+        permission: "work_orders:read",
+      },
       { label: "Buildings", href: "/buildings", icon: Building, permission: "buildings:read" },
       { label: "Customers", href: "/customers", icon: Handshake, permission: "customers:read" },
       { label: "Contracts", href: "/contracts", icon: FilePenLine, permission: "contracts:read" },
@@ -49,12 +60,21 @@ export const NAVIGATION: NavSection[] = [
     label: "Workforce",
     items: [
       { label: "Employees", href: "/employees", icon: IdCard, permission: "employees:read" },
+      { label: "Schedule", href: "/schedule", icon: CalendarDays, permission: "schedule:read" },
+      { label: "Timesheets", href: "/timesheets", icon: Clock, permission: "timesheets:read" },
       {
         label: "Job roles",
         href: "/job-roles",
         icon: BriefcaseBusiness,
         permission: "employees:read",
       },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { label: "Expenses", href: "/expenses", icon: Receipt, permission: "expenses:read" },
+      { label: "Invoices", href: "/invoices", icon: ReceiptText, permission: "invoices:read" },
     ],
   },
   {

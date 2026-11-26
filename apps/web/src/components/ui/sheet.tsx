@@ -15,22 +15,40 @@ export const SheetClose = DialogPrimitive.Close;
 /** Where focus starts in a drawer: the first control of the form in its body. */
 const FIRST_FIELD = "[data-sheet-body] :is(input, select, textarea):not(:disabled)";
 
+/** The first field of the form in a drawer, unless the drawer is one for reading. */
+function firstField(sheet: Element | null | undefined): HTMLElement | null {
+  if (!sheet || sheet.hasAttribute("data-sheet-reading")) return null;
+  return sheet.querySelector<HTMLElement>(FIRST_FIELD);
+}
+
 type SheetContentProps = {
   title: string;
   description?: string;
+  /**
+   * The drawer shows a record to be read, with at most a small form further down: a work
+   * order and its history. Focus then starts on the close button, as it would in any
+   * dialog, instead of jumping to a field that may be out of sight.
+   */
+  reading?: boolean;
   className?: string;
   children: React.ReactNode;
 };
 
 /**
- * A drawer on the right-hand side, for forms with too many fields for a dialog. The list
- * it was opened from stays visible beside it.
+ * A drawer on the right-hand side, for forms with too many fields for a dialog and for
+ * records that are opened from a list. The list stays visible beside it.
  *
  * It is a modal dialog underneath: Radix keeps focus inside while it is open, closes it on
  * Escape and puts focus back where it was. Put a `SheetBody` and a `SheetFooter` inside,
  * usually wrapped in the form they belong to.
  */
-export function SheetContent({ title, description, className, children }: SheetContentProps) {
+export function SheetContent({
+  title,
+  description,
+  reading = false,
+  className,
+  children,
+}: SheetContentProps) {
   const content = useRef<HTMLDivElement>(null);
   const edited = useRef(false);
   return (
@@ -38,12 +56,13 @@ export function SheetContent({ title, description, className, children }: SheetC
       <DialogPrimitive.Overlay className={overlayClasses} />
       <DialogPrimitive.Content
         ref={content}
+        data-sheet-reading={reading ? "" : undefined}
         // Without a description, tell Radix there is deliberately nothing to point at.
         {...(description ? {} : { "aria-describedby": undefined })}
         // Start in the first field rather than on the close button, which comes first in
         // the document.
         onOpenAutoFocus={(event) => {
-          const field = content.current?.querySelector<HTMLElement>(FIRST_FIELD);
+          const field = firstField(content.current);
           if (field) {
             event.preventDefault();
             field.focus();
@@ -125,7 +144,7 @@ export function SheetLoading({ fields = 6 }: { fields?: number }) {
     // Runs once the placeholder is gone and whatever replaces it is in the document. If
     // the drawer itself was closed, there is nothing left to focus.
     return () => {
-      if (sheet?.isConnected) sheet.querySelector<HTMLElement>(FIRST_FIELD)?.focus();
+      if (sheet?.isConnected) firstField(sheet)?.focus();
     };
   }, []);
 

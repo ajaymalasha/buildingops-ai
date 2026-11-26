@@ -1,6 +1,7 @@
-"""List conventions shared by every collection endpoint: paging, sorting, search."""
+"""List conventions shared by every collection endpoint: paging, sorting, search, date ranges."""
 
 from collections.abc import Mapping, Sequence
+from datetime import date
 from typing import Any, cast
 
 from pydantic import BaseModel, Field
@@ -82,6 +83,36 @@ def apply_sort[*Ts](
         for column in columns
     ]
     return statement.order_by(*order, tiebreaker)
+
+
+def check_date_range(first: date | None, last: date | None, *, max_days: int | None = None) -> None:
+    """Refuse `from` and `to` filters that are the wrong way round, or further apart than
+    `max_days` counting both ends. The problem is reported on `to`."""
+    if first is None or last is None:
+        return
+    if last < first:
+        raise ValidationFailedError.for_field(
+            "to",
+            f"The end of the range cannot be before its start ({first.isoformat()}).",
+            "invalid_range",
+        )
+    if max_days is not None and (last - first).days >= max_days:
+        raise ValidationFailedError.for_field(
+            "to", f"Ask for at most {max_days} days at a time.", "range_too_long"
+        )
+
+
+def between_dates[*Ts](
+    statement: Select[*Ts], column: SortColumn, first: date | None, last: date | None
+) -> Select[*Ts]:
+    """Keep the rows whose date is from `first` to `last`, both included. Either end may
+    be left open."""
+    check_date_range(first, last)
+    if first is not None:
+        statement = statement.where(column >= first)
+    if last is not None:
+        statement = statement.where(column <= last)
+    return statement
 
 
 def search_pattern(query: str) -> str:

@@ -39,6 +39,21 @@ class Permission(StrEnum):
     EMPLOYEES_READ_COMPENSATION = "employees:read_compensation"
     CONTRACTS_READ = "contracts:read"
     CONTRACTS_WRITE = "contracts:write"
+    # Work orders: to add and edit them, move them through their statuses and comment.
+    WORK_ORDERS_READ = "work_orders:read"
+    WORK_ORDERS_WRITE = "work_orders:write"
+    # Shifts.
+    SCHEDULE_READ = "schedule:read"
+    SCHEDULE_WRITE = "schedule:write"
+    TIMESHEETS_READ = "timesheets:read"
+    TIMESHEETS_WRITE = "timesheets:write"
+    # To approve, reject and reopen. The same for expenses.
+    TIMESHEETS_APPROVE = "timesheets:approve"
+    EXPENSES_READ = "expenses:read"
+    EXPENSES_WRITE = "expenses:write"
+    EXPENSES_APPROVE = "expenses:approve"
+    # Invoices and the payments received against them.
+    INVOICES_READ = "invoices:read"
     PLATFORM_ORGANIZATIONS = "platform:organizations"
 
 
@@ -56,10 +71,30 @@ _MASTER_DATA_MANAGE: frozenset[Permission] = _MASTER_DATA_READ | {
     _P.CONTRACTS_READ,
     _P.CONTRACTS_WRITE,
 }
+# The day-to-day records a supervisor keeps for their sites, and their crews' time to approve.
+_OPERATIONS_RUN: frozenset[Permission] = frozenset(
+    {
+        _P.WORK_ORDERS_READ,
+        _P.WORK_ORDERS_WRITE,
+        _P.SCHEDULE_READ,
+        _P.SCHEDULE_WRITE,
+        _P.TIMESHEETS_READ,
+        _P.TIMESHEETS_WRITE,
+        _P.TIMESHEETS_APPROVE,
+        _P.EXPENSES_READ,
+        _P.EXPENSES_WRITE,
+    }
+)
+# Approving spending and seeing what customers are billed stay with managers.
+_OPERATIONS_MANAGE: frozenset[Permission] = _OPERATIONS_RUN | {
+    _P.EXPENSES_APPROVE,
+    _P.INVOICES_READ,
+}
 
 ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     Role.PLATFORM_ADMIN: frozenset(Permission),
     Role.COMPANY_ADMIN: _MASTER_DATA_MANAGE
+    | _OPERATIONS_MANAGE
     | {
         _P.ORGANIZATION_READ,
         _P.ORGANIZATION_UPDATE,
@@ -68,9 +103,10 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
         _P.AUDIT_READ,
     },
     Role.OPERATIONS_MANAGER: _MASTER_DATA_MANAGE
+    | _OPERATIONS_MANAGE
     | {_P.ORGANIZATION_READ, _P.MEMBERS_READ, _P.AUDIT_READ},
     # Supervisors see the directory they work in, but neither pay rates nor contract terms.
-    Role.SUPERVISOR: _MASTER_DATA_READ | {_P.ORGANIZATION_READ, _P.MEMBERS_READ},
+    Role.SUPERVISOR: _MASTER_DATA_READ | _OPERATIONS_RUN | {_P.ORGANIZATION_READ, _P.MEMBERS_READ},
     Role.EMPLOYEE: frozenset({_P.ORGANIZATION_READ}),
     Role.CUSTOMER: frozenset({_P.ORGANIZATION_READ}),
     Role.VENDOR: frozenset({_P.ORGANIZATION_READ}),

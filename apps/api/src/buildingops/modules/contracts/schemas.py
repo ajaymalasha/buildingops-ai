@@ -40,6 +40,14 @@ class ContractCustomer(ResponseModel):
     name: str
 
 
+class ContractRef(ResponseModel):
+    """A contract as it appears inside another record: what it is called, not its terms."""
+
+    id: UUID
+    contract_number: str
+    name: str
+
+
 class ContractRead(ResponseModel):
     id: UUID
     contract_number: str
@@ -114,6 +122,9 @@ class ContractFilters(PageParams):
     status: ContractStatus | None = None
     billing_model: BillingModel | None = None
     customer_id: UUID | None = None
+    building_id: UUID | None = Field(
+        default=None, description="Contracts that cover this building."
+    )
     sort: str | None = Field(
         default=None,
         description=(

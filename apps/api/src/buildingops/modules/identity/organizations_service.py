@@ -42,9 +42,14 @@ def get_current(ctx: Context) -> Organization:
     return organization
 
 
+def time_zone(ctx: Context) -> ZoneInfo:
+    """The time zone the organization works in: where its days begin and end."""
+    return ZoneInfo(get_current(ctx).timezone)
+
+
 def today(ctx: Context) -> date:
     """Today's date where the organization works, which near midnight is not the server's."""
-    return datetime.now(ZoneInfo(get_current(ctx).timezone)).date()
+    return datetime.now(time_zone(ctx)).date()
 
 
 def update_current(ctx: Context, data: OrganizationUpdate) -> Organization:

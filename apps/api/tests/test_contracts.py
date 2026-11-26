@@ -308,6 +308,39 @@ def test_listing_supports_search_filters_and_sorting(make_actor: ActorFactory, f
     assert "buildings" not in listed["items"][0]
 
 
+def test_listing_can_be_narrowed_to_the_contracts_that_cover_a_building(
+    make_actor: ActorFactory, factory: Factory
+):
+    admin = make_actor()
+    organization = admin.organization
+    harbor = factory.customer(organization, name="Harbor Realty")
+    tower = factory.building(organization, harbor, name="Tower One")
+    depot = factory.building(organization, harbor, name="Pier Nine Depot")
+    garage = factory.building(organization, harbor, name="Harbor Garage")
+    factory.contract(organization, harbor, buildings=[tower, depot], name="Cleaning")
+    factory.contract(
+        organization, harbor, buildings=[tower], name="Day porters", status=ContractStatus.EXPIRED
+    )
+    factory.contract(organization, harbor, name="Grounds")
+    elsewhere = factory.organization()
+    their_building = factory.building(elsewhere)
+    factory.contract(elsewhere, buildings=[their_building], name="Cleaning for Another Company")
+
+    def names(building_id: object, **params) -> list[str]:
+        response = admin.get(CONTRACTS, params={"building_id": str(building_id), **params})
+        assert response.status_code == 200, response.text
+        return [item["name"] for item in response.json()["items"]]
+
+    # What work at a building can be booked to, whatever state the contract is in.
+    assert names(tower.id) == ["Cleaning", "Day porters"]
+    assert names(depot.id) == ["Cleaning"]
+    assert names(garage.id) == []
+    assert names(tower.id, status="expired") == ["Day porters"]
+    # Another organization's building is covered by nothing here.
+    assert names(their_building.id) == []
+    assert admin.get(CONTRACTS, params={"building_id": "tower"}).status_code == 422
+
+
 def test_invalid_input_is_reported_per_field(make_actor: ActorFactory, factory: Factory):
     admin = make_actor()
     customer = factory.customer(admin.organization)

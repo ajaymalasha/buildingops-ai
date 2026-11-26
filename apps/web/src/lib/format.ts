@@ -1,3 +1,5 @@
+import { daysBetween } from "@/lib/dates";
+
 const LOCALE = "en-US";
 
 /** "Nov 26, 2026, 3:07 AM" in the given IANA time zone (the organization's, normally). */
@@ -24,9 +26,89 @@ export function formatDay(date: string): string {
   );
 }
 
+/** "5:00 PM" in the given IANA time zone (the organization's, normally). */
+export function formatTime(iso: string, timeZone?: string): string {
+  return new Intl.DateTimeFormat(LOCALE, { timeStyle: "short", timeZone }).format(new Date(iso));
+}
+
+const calendarDay = (date: string) => new Date(`${date}T00:00:00Z`);
+
+/** "Mon" for a calendar date. */
+export function formatWeekday(date: string): string {
+  return new Intl.DateTimeFormat(LOCALE, { weekday: "short", timeZone: "UTC" }).format(
+    calendarDay(date),
+  );
+}
+
+/** "Nov 23" for a calendar date: the day without its year, where the year is plain. */
+export function formatMonthDay(date: string): string {
+  return new Intl.DateTimeFormat(LOCALE, {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(calendarDay(date));
+}
+
+/** "Monday, November 23" for a calendar date, as it is read out. */
+export function formatLongDay(date: string): string {
+  return new Intl.DateTimeFormat(LOCALE, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(calendarDay(date));
+}
+
+/**
+ * "Nov 23 – 29, 2026" for a run of calendar days. What the two ends share is said once:
+ * "Nov 30 – Dec 6, 2026", "Dec 28, 2026 – Jan 3, 2027".
+ */
+export function formatDayRange(from: string, to: string): string {
+  return (
+    new Intl.DateTimeFormat(LOCALE, { dateStyle: "medium", timeZone: "UTC" })
+      .formatRange(calendarDay(from), calendarDay(to))
+      // The dash comes with thin spaces around it. Ordinary ones wrap and search as expected.
+      .replace(/[\u2009\u202f]/g, " ")
+  );
+}
+
+/**
+ * "October 2026" when the days are exactly one calendar month, as a billing period
+ * usually is. Any other run of days is shown as its two ends.
+ */
+export function formatPeriod(from: string, to: string): string {
+  const start = calendarDay(from);
+  const end = calendarDay(to);
+  const lastOfMonth = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0));
+  if (start.getUTCDate() === 1 && end.getTime() === lastOfMonth.getTime()) {
+    return new Intl.DateTimeFormat(LOCALE, {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    }).format(start);
+  }
+  return formatDayRange(from, to);
+}
+
+/**
+ * "3 days overdue": how long ago something fell due, counting from the day it was due to
+ * `today`, both calendar dates. Whether it is overdue at all is the API's to say, so this
+ * never says less than a day.
+ */
+export function formatOverdue(dueOn: string, today: string): string {
+  const days = Math.max(daysBetween(dueOn, today), 1);
+  return days === 1 ? "1 day overdue" : `${formatNumber(days)} days overdue`;
+}
+
 /** "412,000" */
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat(LOCALE).format(value);
+}
+
+/** "37.5 h" from a number of minutes: hours as people total them, to two places at most. */
+export function formatDuration(minutes: number): string {
+  const hours = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 2 }).format(minutes / 60);
+  return `${hours} h`;
 }
 
 const DECIMAL = /^-?\d+(\.\d+)?$/;
@@ -47,6 +129,16 @@ export function formatMoney(value: string, currency: string): string {
 /** "12.5%" from "12.50": a rate as people say it, without trailing zeros. */
 export function formatPercent(value: string): string {
   return formatDecimal(value, { style: "unit", unit: "percent", maximumFractionDigits: 2 });
+}
+
+/** "7.50" from "7.5": hours worked, always to two places so that a column of them lines up. */
+export function formatHours(value: string): string {
+  return formatDecimal(value, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/** "1,284.5" from "1284.50": how many of something, without trailing zeros. */
+export function formatQuantity(value: string): string {
+  return formatDecimal(value, { maximumFractionDigits: 2 });
 }
 
 // Each unit is used up to the point where rounding would produce a whole one of the next

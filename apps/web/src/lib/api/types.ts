@@ -26,3 +26,26 @@ export type Contract = Schemas["ContractRead"];
 export type ContractDetail = Schemas["ContractDetail"];
 export type ContractStatus = Schemas["ContractStatus"];
 export type BillingModel = Schemas["BillingModel"];
+
+export type WorkOrder = Schemas["WorkOrderRead"];
+export type WorkOrderDetail = Schemas["WorkOrderDetail"];
+export type WorkOrderActivity = Schemas["WorkOrderActivityRead"];
+export type WorkOrderStatus = Schemas["WorkOrderStatus"];
+export type WorkOrderPriority = Schemas["WorkOrderPriority"];
+export type WorkOrderCategory = Schemas["WorkOrderCategory"];
+export type WorkOrderSource = Schemas["WorkOrderSource"];
+export type Shift = Schemas["ShiftRead"];
+export type ShiftStatus = Schemas["ShiftStatus"];
+/** Where a timesheet or an expense stands with whoever approves it. */
+export type DecisionStatus = Schemas["DecisionStatus"];
+export type Timesheet = Schemas["TimesheetRead"];
+export type TimesheetSource = Schemas["TimesheetSource"];
+export type TimesheetSummary = Schemas["TimesheetSummary"];
+export type Expense = Schemas["ExpenseRead"];
+export type ExpenseCategory = Schemas["ExpenseCategory"];
+export type Invoice = Schemas["InvoiceRead"];
+export type InvoiceDetail = Schemas["InvoiceDetail"];
+export type InvoiceLine = Schemas["InvoiceLineRead"];
+export type InvoiceStatus = Schemas["InvoiceStatus"];
+export type Payment = Schemas["PaymentRead"];
+export type PaymentMethod = Schemas["PaymentMethod"];

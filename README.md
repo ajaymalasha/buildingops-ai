@@ -23,7 +23,10 @@ honest: nothing is listed as working unless it is implemented and tested.
 | Append-only audit log with field-level change history | **Working** |
 | Web app shell, design system, typed API client | **Working** |
 | Master data: customers, buildings, vendors, job roles, employees, building assignments, contracts | **Working** (API, screens and demo data) |
-| Work orders and the other operational records | Planned next |
+| Work orders: a backlog to work from, with each order's status moves, comments and history | **Working** (API, screens and demo data) |
+| Schedule: a weekly roster for each building, with shifts added, changed and cancelled, and overlaps refused | **Working** (API, screens and demo data) |
+| Timesheets and expenses: entering them, and approving, rejecting and reopening them, with time approved several at once | **Working** (API, screens and demo data) |
+| Invoices and payments | **Read only** (API and screens), as seeded history: a list, and each invoice with its lines and the payments received. Generating invoices and recording payments are planned |
 | Executive dashboard, data import, entity resolution | Planned |
 | Workforce workflows, cost-plus billing | Planned |
 | RFP automation, voice agent, training studio (Claude) | Planned |
@@ -31,7 +34,8 @@ honest: nothing is listed as working unless it is implemented and tested.
 
 No external service is connected yet, and nothing is simulated yet either. When simulated
 integrations arrive (payroll, ERP, telephony), they will be labelled as simulated here and
-in the product.
+in the product. The demo data is invented, including its invoices: they are worked out by
+the seed command from the seeded timesheets and expenses, not by a billing engine.
 
 ## Stack
 
@@ -62,7 +66,7 @@ the password `BuildingOps-Demo-2026`.
 | --- | --- |
 | `dana.whitfield@meridianfs.example` | Company admin of two organizations (try the organization switcher) |
 | `marcus.okafor@meridianfs.example` | Operations manager |
-| `priya.raman@meridianfs.example` | Supervisor: reads the directory, but sees no pay rates and no contracts |
+| `priya.raman@meridianfs.example` | Supervisor: runs work orders and the schedule, enters and approves time (never her own) and enters expenses. Reads the directory, but sees no pay rates, labor costs, contracts or invoices, and approves no expenses |
 | `luis.ortega@meridianfs.example` | Employee |
 | `platform.admin@buildingops.example` | Platform admin: manages every organization |
 

@@ -33,6 +33,17 @@ const PERMISSION_PHRASES: Record<Permission, string> = {
   "employees:read_compensation": "See and set pay rates",
   "contracts:read": "View contracts",
   "contracts:write": "Add and edit contracts",
+  "work_orders:read": "View work orders",
+  "work_orders:write": "Add and edit work orders",
+  "schedule:read": "View the shift schedule",
+  "schedule:write": "Schedule and cancel shifts",
+  "timesheets:read": "View timesheets",
+  "timesheets:write": "Enter and edit timesheets",
+  "timesheets:approve": "Approve and reject timesheets",
+  "expenses:read": "View expenses",
+  "expenses:write": "Enter and edit expenses",
+  "expenses:approve": "Approve and reject expenses",
+  "invoices:read": "View invoices and payments",
   "platform:organizations": "Manage organizations across the platform",
 };
 

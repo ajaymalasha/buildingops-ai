@@ -27,25 +27,32 @@ def next_code(ctx: Context, name: str, prefix: str, width: int = 4) -> str:
 def allocate_code(
     db: Session, organization_id: UUID, name: str, prefix: str, width: int = 4
 ) -> str:
-    """`next_code` for callers that have no request context, such as the seed command.
+    """`next_code` for callers that have no request context, such as the seed command."""
+    return allocate_codes(db, organization_id, name, prefix, count=1, width=width)[0]
+
+
+def allocate_codes(
+    db: Session, organization_id: UUID, name: str, prefix: str, *, count: int, width: int = 4
+) -> list[str]:
+    """The next `count` codes of a sequence, in order, taken in one step.
 
     One statement creates the counter or advances it, so concurrent callers cannot be given
-    the same number: the second waits for the first transaction to finish. The number is
-    taken inside the caller's transaction, so a transaction that rolls back gives it back.
+    the same number: the second waits for the first transaction to finish. The numbers are
+    taken inside the caller's transaction, so a transaction that rolls back gives them back.
     """
     statement = (
         insert(OrganizationSequence)
-        # A new counter starts at 1 and this call takes it, leaving 2 as the next value.
-        .values(organization_id=organization_id, name=name, next_value=2)
+        # A new counter starts at 1 and this call takes the first `count` numbers from it.
+        .values(organization_id=organization_id, name=name, next_value=count + 1)
         .on_conflict_do_update(
             index_elements=[OrganizationSequence.organization_id, OrganizationSequence.name],
             set_={
-                "next_value": OrganizationSequence.next_value + 1,
+                "next_value": OrganizationSequence.next_value + count,
                 # `onupdate` does not fire for the UPDATE half of an upsert.
                 "updated_at": func.now(),
             },
         )
-        .returning(OrganizationSequence.next_value - 1)
+        .returning(OrganizationSequence.next_value - count)
     )
-    value = db.execute(statement).scalar_one()
-    return f"{prefix}-{value:0{width}d}"
+    first = db.execute(statement).scalar_one()
+    return [f"{prefix}-{value:0{width}d}" for value in range(first, first + count)]

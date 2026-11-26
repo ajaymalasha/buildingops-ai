@@ -9,17 +9,45 @@ import { cn } from "@/lib/utils";
  * would crowd out the other columns.
  */
 
+type NameCellProps = {
+  name: string;
+  code?: string;
+  /**
+   * Opens the record. The name and its code then make up a button, which is what the
+   * keyboard and screen readers open the row with.
+   */
+  onOpen?: () => void;
+};
+
 /** The cell that identifies a row: its name and, under it, the code people quote. */
-export function NameCell({ name, code }: { name: string; code?: string }) {
-  return (
-    <div className="max-w-72 min-w-36">
-      <p className="line-clamp-2 font-medium text-ink" title={name}>
+export function NameCell({ name, code, onOpen }: NameCellProps) {
+  const content = (
+    <>
+      <span
+        className={cn("line-clamp-2 font-medium text-ink", onOpen && "group-hover:underline")}
+        title={name}
+      >
         {name}
-      </p>
+      </span>
       {code ? (
-        <p className="font-mono text-[11px] whitespace-nowrap text-ink-subtle">{code}</p>
+        <>
+          {/* Read out as two words, not run together, where the two make up a button. */}{" "}
+          <span className="block font-mono text-[11px] whitespace-nowrap text-ink-subtle">
+            {code}
+          </span>
+        </>
       ) : null}
-    </div>
+    </>
+  );
+  if (!onOpen) return <div className="max-w-72 min-w-36">{content}</div>;
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group block max-w-72 min-w-36 cursor-pointer rounded-xs text-left"
+    >
+      {content}
+    </button>
   );
 }
 

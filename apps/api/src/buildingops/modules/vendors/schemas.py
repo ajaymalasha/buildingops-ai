@@ -21,9 +21,14 @@ from buildingops.core.schemas import (
 from buildingops.modules.vendors.models import VendorCategory, VendorStatus
 
 
-class VendorRead(ResponseModel):
+class VendorRef(ResponseModel):
+    """A vendor as it appears inside another record."""
+
     id: UUID
     name: str
+
+
+class VendorRead(VendorRef):
     code: str
     category: VendorCategory
     status: VendorStatus
