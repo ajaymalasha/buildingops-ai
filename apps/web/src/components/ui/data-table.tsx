@@ -3,8 +3,10 @@
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 
 import { isProblem, problemMessage } from "@/lib/api/problem";
+import { selectionState, toggleAll, toggleOne } from "@/lib/selection";
 import { cn } from "@/lib/utils";
 
+import { Checkbox } from "./checkbox";
 import { Skeleton } from "./skeleton";
 import { ErrorState } from "./states";
 
@@ -18,6 +20,22 @@ export type Column<Row> = {
   /** Tailwind width class, for columns that should not stretch. */
   width?: string;
 };
+
+/** Rows that can be ticked, to act on several at once. The caller owns what is ticked. */
+export type RowSelection<Row> = {
+  /** The keys (as `rowKey` gives them) of the rows that are ticked. */
+  selected: ReadonlySet<string>;
+  onChange: (selected: Set<string>) => void;
+  /** Which rows can be ticked. The others get no box: a timesheet already decided on. */
+  isSelectable: (row: Row) => boolean;
+  /** Names a row's box: "Select the timesheet of Ana Zamora for Nov 24". */
+  rowLabel: (row: Row) => string;
+  /** Names the box in the heading: "Select all pending timesheets on this page". */
+  allLabel: string;
+};
+
+/** What a click on a row leaves alone: a control inside the row has its own job. */
+const INTERACTIVE = "a, button, input, select, textarea, label";
 
 type DataTableProps<Row> = {
   /** Accessible name for the table. */
@@ -36,6 +54,14 @@ type DataTableProps<Row> = {
   sort?: string;
   onSortChange?: (sort: string | undefined) => void;
   skeletonRows?: number;
+  /** Adds a first column of boxes for ticking rows. */
+  selection?: RowSelection<Row>;
+  /**
+   * Opens a row when it is clicked anywhere that is not a control of its own. This is a
+   * shortcut for the pointer: also give the row a button that does the same, such as
+   * `NameCell` with `onOpen`, for the keyboard and for screen readers.
+   */
+  onRowClick?: (row: Row) => void;
 };
 
 /**
@@ -55,6 +81,8 @@ export function DataTable<Row>({
   sort,
   onSortChange,
   skeletonRows = 8,
+  selection,
+  onRowClick,
 }: DataTableProps<Row>) {
   if (error && !rows) {
     // Being refused is not a failure to load, and asking again will not change the answer.
@@ -85,6 +113,10 @@ export function DataTable<Row>({
     column.align !== "end" && columns[index - 1]?.align === "end" ? "pl-8" : undefined,
   );
 
+  // The rows on this page that can be ticked: what the box in the heading stands for.
+  const selectable = selection ? (rows ?? []).filter(selection.isSelectable).map(rowKey) : [];
+  const ticked = selection ? selectionState(selection.selected, selectable) : "none";
+
   return (
     <div className="overflow-x-auto">
       <table
@@ -94,6 +126,18 @@ export function DataTable<Row>({
         <caption className="sr-only">{caption}</caption>
         <thead>
           <tr className="border-b border-line bg-canvas/60">
+            {selection ? (
+              <th scope="col" className="h-9 w-10 pr-0 pl-4 text-left">
+                <Checkbox
+                  labelHidden
+                  label={selection.allLabel}
+                  checked={ticked === "all"}
+                  indeterminate={ticked === "some"}
+                  disabled={selectable.length === 0}
+                  onChange={() => selection.onChange(toggleAll(selection.selected, selectable))}
+                />
+              </th>
+            ) : null}
             {columns.map((column, columnIndex) => {
               const active = column.sortKey !== undefined && column.sortKey === sortKey;
               return (
@@ -140,6 +184,7 @@ export function DataTable<Row>({
           {isLoading
             ? Array.from({ length: skeletonRows }, (_, index) => (
                 <tr key={index}>
+                  {selection ? <td className="h-11 w-10" /> : null}
                   {columns.map((column, columnIndex) => (
                     <td key={column.id} className={cn("h-11 px-4", gapBefore[columnIndex])}>
                       <Skeleton
@@ -153,22 +198,56 @@ export function DataTable<Row>({
                   ))}
                 </tr>
               ))
-            : rows?.map((row) => (
-                <tr key={rowKey(row)} className="transition-colors hover:bg-canvas/50">
-                  {columns.map((column, columnIndex) => (
-                    <td
-                      key={column.id}
-                      className={cn(
-                        "h-11 px-4 py-2 align-middle text-ink",
-                        column.align === "end" && "text-right tabular-nums",
-                        gapBefore[columnIndex],
-                      )}
-                    >
-                      {column.cell(row)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+            : rows?.map((row) => {
+                const key = rowKey(row);
+                const isTicked = selection?.selected.has(key) ?? false;
+                return (
+                  <tr
+                    key={key}
+                    className={cn(
+                      "transition-colors hover:bg-canvas/50",
+                      isTicked && "bg-brand-50/50 hover:bg-brand-50/70",
+                      onRowClick && "cursor-pointer",
+                    )}
+                    onClick={
+                      onRowClick
+                        ? (event) => {
+                            // A control in the row does its own job, and dragging across
+                            // the row to copy its text is not a click on it.
+                            if ((event.target as Element).closest(INTERACTIVE)) return;
+                            if (window.getSelection()?.toString()) return;
+                            onRowClick(row);
+                          }
+                        : undefined
+                    }
+                  >
+                    {selection ? (
+                      <td className="h-11 w-10 py-2 pr-0 pl-4 align-middle">
+                        {selection.isSelectable(row) ? (
+                          <Checkbox
+                            labelHidden
+                            label={selection.rowLabel(row)}
+                            checked={isTicked}
+                            onChange={() => selection.onChange(toggleOne(selection.selected, key))}
+                          />
+                        ) : null}
+                      </td>
+                    ) : null}
+                    {columns.map((column, columnIndex) => (
+                      <td
+                        key={column.id}
+                        className={cn(
+                          "h-11 px-4 py-2 align-middle text-ink",
+                          column.align === "end" && "text-right tabular-nums",
+                          gapBefore[columnIndex],
+                        )}
+                      >
+                        {column.cell(row)}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
         </tbody>
       </table>
     </div>

@@ -52,6 +52,35 @@ export const optionalAmount = z
   .trim()
   .regex(/^(\d{1,10}(\.\d{1,2})?)?$/, "Enter an amount such as 18.50.");
 
+/** An amount of money that must be filled in. `message` says what to enter. */
+export function requiredAmount(message: string) {
+  return z
+    .string()
+    .trim()
+    .min(1, message)
+    .regex(/^(\d{1,10}(\.\d{1,2})?)?$/, "Enter an amount such as 18.50.");
+}
+
+/** Blank, or a number of hours with at most two decimal places. */
+export const optionalHours = z
+  .string()
+  .trim()
+  .regex(/^(\d{1,2}(\.\d{1,2})?)?$/, "Enter hours such as 7.5.");
+
+/** A number of hours that must be filled in. `message` says what to enter. */
+export function requiredHours(message: string) {
+  return z
+    .string()
+    .trim()
+    .min(1, message)
+    .regex(/^(\d{1,2}(\.\d{1,2})?)?$/, "Enter hours such as 7.5.");
+}
+
+/** A time of day as a time input gives it, on the 24-hour clock: 17:00. */
+export function timeOfDay(message: string) {
+  return z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, message);
+}
+
 /** Blank, or a percentage with at most two decimal places. */
 export const optionalPercent = z
   .string()

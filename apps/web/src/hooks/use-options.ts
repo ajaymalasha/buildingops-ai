@@ -55,3 +55,52 @@ export function useSupervisorOptions({ enabled = true }: Options = {}) {
     { enabled },
   );
 }
+
+/** Employees, by last name: everyone, or the people assigned to one building. */
+export function useEmployeeOptions({
+  buildingId,
+  enabled = true,
+}: Options & { buildingId?: string } = {}) {
+  return $api.useQuery(
+    "get",
+    "/api/v1/employees",
+    { params: { query: { building_id: buildingId, page_size: ALL } } },
+    { enabled },
+  );
+}
+
+/** Vendors, by name. */
+export function useVendorOptions({ enabled = true }: Options = {}) {
+  return $api.useQuery(
+    "get",
+    "/api/v1/vendors",
+    { params: { query: { page_size: ALL } } },
+    { enabled },
+  );
+}
+
+/** Contracts, by name: all of them, or the ones that cover one building. */
+export function useContractOptions({
+  buildingId,
+  enabled = true,
+}: Options & { buildingId?: string } = {}) {
+  return $api.useQuery(
+    "get",
+    "/api/v1/contracts",
+    { params: { query: { building_id: buildingId, page_size: ALL } } },
+    { enabled },
+  );
+}
+
+/** The work orders raised at one building, newest first. */
+export function useWorkOrderOptions({
+  buildingId,
+  enabled = true,
+}: Options & { buildingId: string }) {
+  return $api.useQuery(
+    "get",
+    "/api/v1/work-orders",
+    { params: { query: { building_id: buildingId, page_size: ALL } } },
+    { enabled },
+  );
+}

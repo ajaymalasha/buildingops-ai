@@ -17,6 +17,11 @@ type ConfirmDialogProps = {
   description: string;
   /** Names the action: "Archive customer", not "OK". */
   confirmLabel: string;
+  /**
+   * Names the way out. "Cancel" unless the action is itself a cancellation, where two
+   * buttons saying cancel would be a trap: then say what is kept, as in "Keep shift".
+   */
+  cancelLabel?: string;
   tone?: "default" | "danger";
   /** True while the action is in flight. */
   loading?: boolean;
@@ -39,6 +44,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
+  cancelLabel = "Cancel",
   tone = "default",
   loading = false,
   error,
@@ -64,7 +70,7 @@ export function ConfirmDialog({
           <DialogFooter>
             <AlertDialogPrimitive.Cancel asChild>
               <Button variant={refused ? "secondary" : "ghost"}>
-                {refused ? "Close" : "Cancel"}
+                {refused ? "Close" : cancelLabel}
               </Button>
             </AlertDialogPrimitive.Cancel>
             {refused ? null : (

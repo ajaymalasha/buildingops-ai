@@ -7,13 +7,20 @@ import { Blank, NameCell, StackedCell } from "./cells";
 import { Checkbox } from "./checkbox";
 import { ConfirmDialog } from "./confirm-dialog";
 import { DataTable, type Column } from "./data-table";
+import { DateRangeFilter } from "./date-range-filter";
+import { Detail, DetailList } from "./detail-list";
 import { Field } from "./field";
 import { FilterSelect } from "./filter-select";
+import { FilterToggle } from "./filter-toggle";
 import { FormSection } from "./form-section";
-import { Input, UnitInput } from "./input";
+import { Input, Textarea, UnitInput } from "./input";
 import { Pagination } from "./pagination";
+import { ReasonDialog } from "./reason-dialog";
 import { SearchInput } from "./search-input";
+import { SegmentedControl } from "./segmented-control";
 import { Sheet, SheetBody, SheetClose, SheetContent, SheetFooter, SheetLoading } from "./sheet";
+import { Timeline, TimelineItem } from "./timeline";
+import { WeekGrid } from "./week-grid";
 
 type Person = { id: string; name: string; hours: number };
 
@@ -156,6 +163,177 @@ describe("DataTable", () => {
   });
 });
 
+describe("DataTable with rows that can be ticked", () => {
+  const crew: Person[] = [
+    { id: "1", name: "Dana", hours: 40 },
+    { id: "2", name: "Luis", hours: 32 },
+    { id: "3", name: "Priya", hours: 0 }, // nothing to approve: cannot be ticked
+  ];
+
+  function selectable(selected: string[] = []) {
+    const onChange = vi.fn();
+    const view = render(
+      <DataTable
+        caption="People"
+        columns={columns}
+        rows={crew}
+        rowKey={(person) => person.id}
+        isLoading={false}
+        empty={null}
+        selection={{
+          selected: new Set(selected),
+          onChange,
+          isSelectable: (person) => person.hours > 0,
+          rowLabel: (person) => `Select ${person.name}`,
+          allLabel: "Select everyone with hours",
+        }}
+      />,
+    );
+    return { onChange, ...view };
+  }
+  const all = () => screen.getByRole("checkbox", { name: "Select everyone with hours" });
+  const chosen = (onChange: ReturnType<typeof vi.fn>) =>
+    [...(onChange.mock.lastCall![0] as Set<string>)].sort();
+
+  it("gives each row that can be ticked a box named for it, and the others none", () => {
+    selectable();
+
+    expect(screen.getByRole("checkbox", { name: "Select Dana" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Luis" })).not.toBeChecked();
+    expect(screen.queryByRole("checkbox", { name: "Select Priya" })).not.toBeInTheDocument();
+    // The boxes take a column of their own, in the heading too.
+    expect(screen.getAllByRole("columnheader")).toHaveLength(3);
+    expect(within(screen.getAllByRole("row")[1]!).getAllByRole("cell")).toHaveLength(3);
+  });
+
+  it("reports the rows that are ticked after one is ticked or unticked", async () => {
+    const { onChange } = selectable(["1"]);
+
+    expect(screen.getByRole("checkbox", { name: "Select Dana" })).toBeChecked();
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select Luis" }));
+    expect(chosen(onChange)).toEqual(["1", "2"]);
+
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select Dana" }));
+    expect(chosen(onChange)).toEqual([]);
+  });
+
+  it("ticks every row that can be ticked from the heading, and unticks them all again", async () => {
+    const { onChange, unmount } = selectable();
+    expect(all()).not.toBeChecked();
+    await userEvent.click(all());
+    expect(chosen(onChange)).toEqual(["1", "2"]); // not Priya
+    unmount();
+
+    const again = selectable(["1", "2"]);
+    expect(all()).toBeChecked();
+    await userEvent.click(all());
+    expect(chosen(again.onChange)).toEqual([]);
+  });
+
+  it("shows the heading's box as partly ticked when only some rows are", () => {
+    selectable(["2"]);
+
+    expect(all()).not.toBeChecked();
+    expect(all()).toBePartiallyChecked();
+  });
+
+  it("has nothing for the heading's box to do when no row can be ticked", () => {
+    render(
+      <DataTable
+        caption="People"
+        columns={columns}
+        rows={crew}
+        rowKey={(person) => person.id}
+        isLoading={false}
+        empty={null}
+        selection={{
+          selected: new Set(),
+          onChange: vi.fn(),
+          isSelectable: () => false,
+          rowLabel: (person) => `Select ${person.name}`,
+          allLabel: "Select everyone with hours",
+        }}
+      />,
+    );
+
+    expect(all()).toBeDisabled();
+    expect(screen.getAllByRole("checkbox")).toHaveLength(1);
+  });
+});
+
+describe("DataTable with rows that open", () => {
+  function openable() {
+    const onOpen = vi.fn();
+    const onArchive = vi.fn();
+    render(
+      <DataTable
+        caption="People"
+        columns={[
+          {
+            id: "name",
+            header: "Name",
+            cell: (person: Person) => (
+              <NameCell
+                name={person.name}
+                code={`EMP-${person.id}`}
+                onOpen={() => onOpen(person)}
+              />
+            ),
+          },
+          { id: "hours", header: "Hours", align: "end", cell: (person) => person.hours },
+          {
+            id: "actions",
+            header: "",
+            cell: (person) => (
+              <button onClick={() => onArchive(person)}>Archive {person.name}</button>
+            ),
+          },
+        ]}
+        rows={people}
+        rowKey={(person) => person.id}
+        isLoading={false}
+        empty={null}
+        onRowClick={onOpen}
+      />,
+    );
+    return { onOpen, onArchive };
+  }
+
+  it("opens a row from a click anywhere on it", async () => {
+    const { onOpen } = openable();
+
+    await userEvent.click(screen.getByRole("cell", { name: "32" }));
+
+    expect(onOpen).toHaveBeenCalledExactlyOnceWith(people[1]);
+  });
+
+  it("opens a row from the keyboard through the button that names it", async () => {
+    const { onOpen } = openable();
+
+    const open = screen.getByRole("button", { name: "Dana EMP-1" });
+    open.focus();
+    await userEvent.keyboard("{Enter}");
+
+    // Once: the button opens it, and the row does not open it a second time.
+    expect(onOpen).toHaveBeenCalledExactlyOnceWith(people[0]);
+  });
+
+  it("leaves a control inside the row to do its own job", async () => {
+    const { onOpen, onArchive } = openable();
+
+    await userEvent.click(screen.getByRole("button", { name: "Archive Luis" }));
+
+    expect(onArchive).toHaveBeenCalledExactlyOnceWith(people[1]);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("does not make rows look clickable when they do not open", () => {
+    table();
+
+    expect(screen.getAllByRole("row")[1]).not.toHaveClass("cursor-pointer");
+  });
+});
+
 describe("Pagination", () => {
   it("describes the visible range and disables the ends", async () => {
     const onPageChange = vi.fn();
@@ -292,6 +470,40 @@ describe("Checkbox", () => {
     await userEvent.click(screen.getByText("Primary building"));
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  it("can keep its label for screen readers only, beside what it selects", () => {
+    render(
+      <Checkbox
+        labelHidden
+        label="Select the timesheet of Ana Zamora"
+        onChange={() => undefined}
+      />,
+    );
+
+    expect(
+      screen.getByRole("checkbox", { name: "Select the timesheet of Ana Zamora" }),
+    ).toBeVisible();
+    expect(screen.getByText("Select the timesheet of Ana Zamora")).toHaveClass("sr-only");
+  });
+
+  it("can show that only some of what it stands for is ticked", () => {
+    const { rerender } = render(
+      <Checkbox label="Select all" indeterminate onChange={() => undefined} checked={false} />,
+    );
+    const box = screen.getByRole("checkbox", { name: "Select all" });
+    expect(box).toBePartiallyChecked();
+
+    rerender(<Checkbox label="Select all" onChange={() => undefined} checked />);
+    expect(box).not.toBePartiallyChecked();
+    expect(box).toBeChecked();
+  });
+
+  it("still hands its input to a form that registers it by reference", () => {
+    const ref = vi.fn();
+    render(<Checkbox label="Billable" ref={ref} indeterminate />);
+
+    expect(ref).toHaveBeenCalledWith(screen.getByRole("checkbox", { name: "Billable" }));
+  });
 });
 
 describe("FilterSelect", () => {
@@ -363,6 +575,23 @@ describe("table cells", () => {
 
     expect(screen.getByText("—")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByText("No phone number")).toHaveClass("sr-only");
+  });
+
+  it("makes a button of the name and its code where the row opens a record", async () => {
+    const onOpen = vi.fn();
+    render(<NameCell name="No cooling on the 4th floor" code="WO-0412" onOpen={onOpen} />);
+
+    // Named by both, since the same title can come up at several buildings.
+    const open = screen.getByRole("button", { name: "No cooling on the 4th floor WO-0412" });
+    await userEvent.click(open);
+    expect(onOpen).toHaveBeenCalledOnce();
+    expect(open).toHaveAttribute("type", "button");
+  });
+
+  it("is plain text where there is nothing to open", () => {
+    render(<NameCell name="Calloway Tower" code="BLD-0001" />);
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });
 
@@ -517,6 +746,40 @@ describe("Sheet", () => {
     expect(screen.getByLabelText("Customer")).toHaveFocus();
   });
 
+  // A drawer that shows a record, with a comment box under it.
+  const readingDrawer = (loaded: boolean) => (
+    <Sheet open>
+      <SheetContent reading title="No cooling on the 4th floor" description="Work order WO-0412">
+        {loaded ? (
+          <SheetBody>
+            <p>Calloway Tower</p>
+            <Field id="comment" label="Add a comment">
+              {(control) => <Textarea {...control} />}
+            </Field>
+          </SheetBody>
+        ) : (
+          <SheetLoading />
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+
+  it("starts on the close button in a drawer for reading, even with a field further down", () => {
+    render(readingDrawer(true));
+
+    // Jumping to the comment box would scroll the record out of sight as it opens.
+    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+  });
+
+  it("stays on the close button when what a reading drawer shows arrives after it opens", () => {
+    const { rerender } = render(readingDrawer(false));
+
+    rerender(readingDrawer(true));
+
+    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+    expect(screen.getByLabelText("Add a comment")).not.toHaveFocus();
+  });
+
   it("leaves focus alone when loading ends because the drawer was closed", () => {
     const { rerender } = render(
       <Sheet open>
@@ -620,6 +883,466 @@ describe("ConfirmDialog", () => {
 
     expect(onOpenChange).toHaveBeenCalledTimes(2);
     expect(onOpenChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it("names the way out for what is kept when the action is itself a cancellation", async () => {
+    const { onConfirm, onOpenChange } = confirmDialog({
+      title: "Cancel this shift?",
+      confirmLabel: "Cancel shift",
+      cancelLabel: "Keep shift",
+    });
+
+    // Two buttons that both say cancel would be a trap.
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keep shift" })).toHaveFocus();
+
+    await userEvent.click(screen.getByRole("button", { name: "Keep shift" }));
+    expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+});
+
+describe("ReasonDialog", () => {
+  function reasonDialog(props: Partial<React.ComponentProps<typeof ReasonDialog>> = {}) {
+    const handlers = { onConfirm: vi.fn(), onOpenChange: vi.fn() };
+    render(
+      <ReasonDialog
+        open
+        title="Reject this timesheet?"
+        description="Maya Castellano, Nov 25, 2026 at Calloway Tower. The reason is kept on the timesheet."
+        confirmLabel="Reject timesheet"
+        requiredMessage="Say why the timesheet is rejected."
+        {...handlers}
+        {...props}
+      />,
+    );
+    return handlers;
+  }
+  const reason = () => screen.getByRole("textbox", { name: "Reason" });
+  const submit = () => userEvent.click(screen.getByRole("button", { name: "Reject timesheet" }));
+
+  it("asks the question, says what it is about and starts where the reason is typed", () => {
+    reasonDialog();
+
+    const dialog = screen.getByRole("dialog", { name: "Reject this timesheet?" });
+    expect(dialog).toHaveAccessibleDescription(
+      "Maya Castellano, Nov 25, 2026 at Calloway Tower. The reason is kept on the timesheet.",
+    );
+    expect(reason()).toHaveFocus();
+  });
+
+  it("does not go ahead without a reason, and says what is missing on the field", async () => {
+    const { onConfirm } = reasonDialog();
+
+    await userEvent.type(reason(), "   ");
+    await submit();
+
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(reason()).toBeInvalid();
+    expect(reason()).toHaveAccessibleDescription("Say why the timesheet is rejected.");
+
+    // The message goes as soon as something is typed.
+    await userEvent.type(reason(), "H");
+    expect(reason()).toBeValid();
+  });
+
+  it("hands over the reason as it was typed, without the space around it", async () => {
+    const { onConfirm, onOpenChange } = reasonDialog();
+
+    await userEvent.type(reason(), "  Hours do not match the sign-in sheet. ");
+    await submit();
+
+    expect(onConfirm).toHaveBeenCalledExactlyOnceWith("Hours do not match the sign-in sheet.");
+    // Closing is its owner's, so that a refusal can be shown where the reason was given.
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("blocks a second submission while the first is in flight", async () => {
+    const { onConfirm } = reasonDialog({ loading: true });
+
+    expect(screen.getByRole("button", { name: "Reject timesheet" })).toBeDisabled();
+    await userEvent.type(reason(), "Duplicate of another entry.{Enter}");
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("shows a refusal in the API's words", () => {
+    reasonDialog({
+      error: {
+        type: "about:blank",
+        title: "Conflict",
+        status: 409,
+        code: "conflict",
+        detail: "This timesheet has already been approved. Reopen it to decide again.",
+      },
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "This timesheet has already been approved. Reopen it to decide again.",
+    );
+  });
+
+  it("puts what the API says about the reason itself on the field", () => {
+    reasonDialog({
+      error: {
+        type: "about:blank",
+        title: "Validation failed",
+        status: 422,
+        code: "validation_error",
+        detail: "One or more fields are invalid.",
+        errors: [{ field: "reason", message: "Use at most 500 characters." }],
+      },
+    });
+
+    expect(reason()).toHaveAccessibleDescription("Use at most 500 characters.");
+    expect(screen.queryByText("One or more fields are invalid.")).not.toBeInTheDocument();
+  });
+
+  it("closes on Cancel and on Escape, and starts empty the next time", async () => {
+    const onOpenChange = vi.fn();
+    const dialog = (open: boolean) => (
+      <ReasonDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Reject this expense?"
+        description="Ice melt ($184.20)."
+        confirmLabel="Reject expense"
+        onConfirm={() => undefined}
+      />
+    );
+    const { rerender } = render(dialog(true));
+
+    await userEvent.type(reason(), "No receipt attached.");
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await userEvent.keyboard("{Escape}");
+    expect(onOpenChange).toHaveBeenCalledTimes(2);
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+
+    rerender(dialog(false));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    rerender(dialog(true));
+    expect(reason()).toHaveValue("");
+  });
+});
+
+describe("SegmentedControl", () => {
+  const segments = [
+    { value: "pending", label: "Pending", count: 263 },
+    { value: "approved", label: "Approved", count: 18227 },
+    { value: "all", label: "All" },
+  ] as const;
+
+  function control(value: (typeof segments)[number]["value"] = "pending") {
+    const onChange = vi.fn();
+    render(
+      <SegmentedControl
+        label="Timesheets by status"
+        value={value}
+        segments={segments}
+        onChange={onChange}
+      />,
+    );
+    return onChange;
+  }
+
+  it("is a named group of radio buttons, with exactly one on", () => {
+    control();
+
+    const group = screen.getByRole("radiogroup", { name: "Timesheets by status" });
+    expect(within(group).getAllByRole("radio")).toHaveLength(3);
+    expect(screen.getByRole("radio", { name: /Pending/ })).toBeChecked();
+    expect(screen.getByRole("radio", { name: /Approved/ })).not.toBeChecked();
+    expect(screen.getByRole("radio", { name: "All" })).not.toBeChecked();
+  });
+
+  it("shows how many records a choice holds, where that is known", () => {
+    control();
+
+    expect(screen.getByRole("radio", { name: /Pending/ })).toHaveTextContent("Pending263");
+    expect(screen.getByRole("radio", { name: /Approved/ })).toHaveTextContent("Approved18,227");
+    expect(screen.getByRole("radio", { name: "All" })).toHaveTextContent(/^All$/);
+  });
+
+  it("reports the choice that was pressed", async () => {
+    const onChange = control();
+
+    await userEvent.click(screen.getByRole("radio", { name: /Approved/ }));
+
+    expect(onChange).toHaveBeenCalledExactlyOnceWith("approved");
+  });
+
+  it("keeps one choice on: pressing it again changes nothing", async () => {
+    const onChange = control("approved");
+
+    await userEvent.click(screen.getByRole("radio", { name: /Approved/ }));
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("radio", { name: /Approved/ })).toBeChecked();
+  });
+
+  it("moves between the choices with the arrow keys, as radio buttons do", async () => {
+    control();
+
+    // Tab reaches the group once, at the choice that is on.
+    await userEvent.tab();
+    expect(screen.getByRole("radio", { name: /Pending/ })).toHaveFocus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(screen.getByRole("radio", { name: /Approved/ })).toHaveFocus();
+    await userEvent.keyboard("{ArrowRight}{ArrowRight}");
+    expect(screen.getByRole("radio", { name: /Pending/ })).toHaveFocus(); // round to the start
+    await userEvent.tab();
+    expect(document.body).toHaveFocus();
+  });
+});
+
+describe("FilterToggle", () => {
+  it("is a checkbox named for what it narrows the list to, and shows the applied state", () => {
+    const { rerender } = render(
+      <FilterToggle label="Overdue only" checked={false} onChange={() => undefined} />,
+    );
+    const toggle = screen.getByRole("checkbox", { name: "Overdue only" });
+    expect(toggle).not.toBeChecked();
+
+    rerender(<FilterToggle label="Overdue only" checked onChange={() => undefined} />);
+    expect(toggle).toBeChecked();
+  });
+
+  it("reports being turned on and off, from the box, its label or the space bar", async () => {
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <FilterToggle label="Overdue only" checked={false} onChange={onChange} />,
+    );
+
+    await userEvent.click(screen.getByText("Overdue only"));
+    expect(onChange).toHaveBeenLastCalledWith(true);
+
+    rerender(<FilterToggle label="Overdue only" checked onChange={onChange} />);
+    screen.getByRole("checkbox", { name: "Overdue only" }).focus();
+    await userEvent.keyboard(" ");
+    expect(onChange).toHaveBeenLastCalledWith(false);
+    // What it shows is what it is given: the URL decides.
+    expect(screen.getByRole("checkbox", { name: "Overdue only" })).toBeChecked();
+  });
+});
+
+describe("DateRangeFilter", () => {
+  function range(from?: string, to?: string) {
+    const onChange = vi.fn();
+    render(<DateRangeFilter label="Work date" from={from} to={to} onChange={onChange} />);
+    return onChange;
+  }
+
+  it("is a named pair of date inputs, each saying which end it is", () => {
+    range("2026-11-01", "2026-11-26");
+
+    const group = screen.getByRole("group", { name: "Work date" });
+    expect(within(group).getByText("Work date")).toBeVisible();
+    expect(screen.getByLabelText("Work date from")).toHaveValue("2026-11-01");
+    expect(screen.getByLabelText("Work date to")).toHaveValue("2026-11-26");
+  });
+
+  it("stops each end at the other, so the range cannot be chosen backwards", () => {
+    range("2026-11-01", "2026-11-26");
+
+    expect(screen.getByLabelText("Work date from")).toHaveAttribute("max", "2026-11-26");
+    expect(screen.getByLabelText("Work date to")).toHaveAttribute("min", "2026-11-01");
+  });
+
+  it("reports the end that changed, and an emptied end as empty", () => {
+    const onChange = range(undefined, "2026-11-26");
+    expect(screen.getByLabelText("Work date from")).toHaveValue("");
+    expect(screen.getByLabelText("Work date from")).not.toHaveAttribute("min");
+
+    fireEvent.change(screen.getByLabelText("Work date from"), { target: { value: "2026-11-10" } });
+    expect(onChange).toHaveBeenLastCalledWith({ from: "2026-11-10" });
+
+    fireEvent.change(screen.getByLabelText("Work date to"), { target: { value: "" } });
+    expect(onChange).toHaveBeenLastCalledWith({ to: "" });
+  });
+});
+
+describe("Timeline", () => {
+  function history() {
+    return render(
+      <Timeline label="History of WO-0412">
+        <TimelineItem
+          title="Completed"
+          by="Luis Ortega"
+          at="2026-11-26T15:42:00Z"
+          when="Nov 26, 2026, 10:42 AM"
+        >
+          Replaced both lamps and tested them.
+        </TimelineItem>
+        <TimelineItem
+          title="Work started"
+          by="Luis Ortega"
+          at="2026-11-26T14:10:00Z"
+          when="Nov 26, 2026, 9:10 AM"
+        />
+        <TimelineItem
+          title="Work order raised"
+          at="2026-11-25T13:05:00Z"
+          when="Nov 25, 2026, 8:05 AM"
+        />
+      </Timeline>,
+    );
+  }
+
+  it("is a named list with an entry for each thing that happened, in the order given", () => {
+    history();
+
+    const list = screen.getByRole("list", { name: "History of WO-0412" });
+    const entries = within(list).getAllByRole("listitem");
+    expect(entries).toHaveLength(3);
+    expect(entries[0]).toHaveTextContent("Completed");
+    expect(entries[2]).toHaveTextContent("Work order raised");
+  });
+
+  it("says who did it and when, with the moment itself for machines", () => {
+    history();
+
+    const [completed, , raised] = screen.getAllByRole("listitem");
+    expect(completed).toHaveTextContent("Luis Ortega · Nov 26, 2026, 10:42 AM");
+    expect(within(completed!).getByText("Nov 26, 2026, 10:42 AM")).toHaveAttribute(
+      "dateTime",
+      "2026-11-26T15:42:00Z",
+    );
+    // Nobody is named where nobody is known.
+    expect(raised).not.toHaveTextContent("·");
+  });
+
+  it("shows what was said with an entry under it, and nothing where nothing was", () => {
+    history();
+
+    const [completed, started] = screen.getAllByRole("listitem");
+    expect(within(completed!).getByText("Replaced both lamps and tested them.")).toBeVisible();
+    expect(started!.querySelector(".bg-canvas")).toBeNull();
+  });
+});
+
+describe("WeekGrid", () => {
+  type Roster = { id: string; name: string; shifts: Record<string, string> };
+
+  const days = [
+    "2026-11-23",
+    "2026-11-24",
+    "2026-11-25",
+    "2026-11-26",
+    "2026-11-27",
+    "2026-11-28",
+    "2026-11-29",
+  ];
+  const rows: Roster[] = [
+    { id: "1", name: "Bo Adams", shifts: { "2026-11-23": "7:00 AM – 3:30 PM" } },
+    {
+      id: "2",
+      name: "Maya Castellano",
+      shifts: { "2026-11-23": "5:00 PM – 1:30 AM", "2026-11-26": "5:00 PM – 1:30 AM" },
+    },
+  ];
+
+  function grid(props: Partial<React.ComponentProps<typeof WeekGrid<Roster>>> = {}) {
+    return render(
+      <WeekGrid
+        caption="Schedule for Calloway Tower, Nov 23 – 29, 2026"
+        days={days}
+        today="2026-11-26"
+        rowHeading="Employee"
+        rows={rows}
+        rowKey={(row) => row.id}
+        rowHeader={(row) => row.name}
+        cell={(row, day) => row.shifts[day]}
+        {...props}
+      />,
+    );
+  }
+
+  it("is a labelled table with a column for each day and a row for each person", () => {
+    grid();
+
+    const table = screen.getByRole("table", {
+      name: "Schedule for Calloway Tower, Nov 23 – 29, 2026",
+    });
+    expect(within(table).getAllByRole("columnheader")).toHaveLength(8); // the people, then 7 days
+    expect(within(table).getAllByRole("row")).toHaveLength(3); // the days, then 2 people
+    expect(within(table).getByRole("columnheader", { name: "Employee" })).toBeInTheDocument();
+    expect(within(table).getByRole("rowheader", { name: "Maya Castellano" })).toBeInTheDocument();
+  });
+
+  it("names each day in full for screen readers, and shows it short", () => {
+    grid();
+
+    const monday = screen.getByRole("columnheader", { name: "Monday, November 23" });
+    expect(monday).toHaveTextContent("Mon");
+    expect(monday).toHaveTextContent("Nov 23");
+    expect(screen.getByRole("columnheader", { name: "Sunday, November 29" })).toBeInTheDocument();
+  });
+
+  it("marks today's column, and only that one", () => {
+    grid();
+
+    const today = screen.getByRole("columnheader", { name: "Thursday, November 26, today" });
+    expect(today).toHaveAttribute("aria-current", "date");
+    expect(screen.getAllByRole("columnheader", { current: "date" })).toHaveLength(1);
+  });
+
+  it("marks no column when today is in another week", () => {
+    grid({ today: "2026-12-03" });
+
+    expect(screen.queryByRole("columnheader", { current: "date" })).not.toBeInTheDocument();
+  });
+
+  it("puts what each person has on a day under that day, and leaves the other days empty", () => {
+    grid();
+
+    const maya = screen.getByRole("row", { name: /Maya Castellano/ });
+    const cells = within(maya).getAllByRole("cell");
+    expect(cells).toHaveLength(7);
+    expect(cells[0]).toHaveTextContent("5:00 PM – 1:30 AM"); // Monday
+    expect(cells[1]).toBeEmptyDOMElement(); // Tuesday
+    expect(cells[3]).toHaveTextContent("5:00 PM – 1:30 AM"); // Thursday
+  });
+
+  it("shows placeholder rows while the week loads, and says it is busy", () => {
+    grid({ rows: undefined, isLoading: true, skeletonRows: 3 });
+
+    const table = screen.getByRole("table");
+    expect(table).toHaveAttribute("aria-busy", "true");
+    expect(within(table).getAllByRole("row")).toHaveLength(4);
+    expect(screen.queryByText("Maya Castellano")).not.toBeInTheDocument();
+  });
+
+  it("is not busy once the week has arrived", () => {
+    grid();
+
+    expect(screen.getByRole("table")).toHaveAttribute("aria-busy", "false");
+  });
+});
+
+describe("DetailList", () => {
+  it("is a list of facts, each under its name", () => {
+    render(
+      <DetailList>
+        <Detail term="Building">Calloway Tower</Detail>
+        <Detail term="Due">Nov 28, 2026</Detail>
+        <Detail term="Description" wide>
+          Second report this month.
+        </Detail>
+      </DetailList>,
+    );
+
+    expect(screen.getAllByRole("term").map((term) => term.textContent)).toEqual([
+      "Building",
+      "Due",
+      "Description",
+    ]);
+    expect(screen.getAllByRole("definition").map((value) => value.textContent)).toEqual([
+      "Calloway Tower",
+      "Nov 28, 2026",
+      "Second report this month.",
+    ]);
+    // A long value can take the whole row.
+    expect(screen.getByText("Description").parentElement).toHaveClass("col-span-2");
+    expect(screen.getByText("Building").parentElement).not.toHaveClass("col-span-2");
   });
 });
 

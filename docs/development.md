@@ -93,7 +93,9 @@
   `src/lib` holds everything without JSX.
 - Call the API with `$api.useQuery` / `$api.useMutation` from `src/lib/api/client.ts`.
   Types come from the OpenAPI document. Run `make api-types` after changing the API.
-- Keep list state in the URL with `useListParams`.
+- Keep list state in the URL with `useListParams`. A parameter that chooses what the page
+  shows rather than narrows it (the tab that is open, the week on show) is named in its
+  `view` option: it is then not counted as a filter, and "Clear filters" leaves it alone.
 - Show API errors with `applyProblem` (forms) or `problemMessage` (everything else).
 - Gate what is shown with `useCan`, and remember that it only decides what is shown.
 - A page in the navigation must work. Do not add placeholders for modules that do not
@@ -135,6 +137,51 @@ as it is made.
 - **After a change.** Call `invalidate` with every endpoint the change shows up in, not
   only the one written to. A new building changes its customer's building count.
 
+### Operational records on screen
+
+`features/work-orders`, `features/schedule`, `features/timesheets`, `features/expenses` and
+`features/invoices` build on the list page above. What they add is shared, and worth
+reusing before writing anything new.
+
+- **Views and on-off filters.** `SegmentedControl` switches between the views of a list
+  (backlog, completed, all) and can carry a count on each. `FilterToggle` is a filter
+  that is either on or off ("Overdue only"), and `DateRangeFilter` one for records dated
+  between two days. All three take their state from the URL.
+- **Opening a record.** A record that is read more than it is edited opens in a drawer:
+  `SheetContent` with `reading`, so that focus does not jump to a field further down.
+  Give its row a button with `NameCell`'s `onOpen` (for the keyboard and screen readers)
+  and the table `onRowClick` (for the pointer). Show its facts in a `DetailList` and its
+  history in a `Timeline`. Changes made in such a drawer are saved as they are made and
+  announced from inside it, as in the building-assignments drawer.
+- **Status moves.** Offer a button for each move the API allows and no other. Keep the
+  table of moves beside the feature, with a test that writes the API's table out again
+  and checks the two agree. Nothing reads the API's table itself, so when it changes,
+  change both.
+- **Deciding.** Approve, reject and reopen are row actions. Rejecting asks why with
+  `ReasonDialog`. The words and colours for pending, approved and rejected are in
+  `lib/decisions.ts`. To act on several rows, give `DataTable` a `selection`, and send
+  only what `keepSelected` leaves: what is on screen now and can still be acted on.
+- **A week.** `WeekGrid` lays out a row for each person and a column for each day. Week
+  arithmetic (`startOfWeek`, `weekDays`, `addDays`) is in `lib/dates.ts`: a week runs
+  from Monday to Sunday.
+- **Times.** The API takes instants with an offset. A form holds a day and a clock time
+  where the organization is, as its inputs give them. Turn them into an instant with
+  `instantInZone` (or `fromDateTimeInput`) and back with `zonedDateTime` (or
+  `toDateTimeInput`), always passing the organization's time zone, never the browser's.
+  Send a time only when the form's value for it changed: read back from a clock, a time
+  loses its seconds, and on the night the clocks go back it can land an hour away.
+- **Contracts.** A record booked to a contract must be for a building it covers, so the
+  form offers only those: `ContractField`, in `components/forms`. Clear its value when
+  the building changes. Leave it out, and `contract_id` out of the request, for someone
+  without `contracts:read`. The same goes for any choice from a list the person may not
+  read.
+- **Adding up.** Hours and money arrive as decimal strings. To add them, use
+  `sumDecimals`, never `Number()`. Do not work out a cost in the browser at all: a
+  timesheet's rate, multiplier and labor cost are the API's, and its form sends none of
+  them.
+- **Nothing that does nothing.** Invoices can only be read, so their page has no button
+  that creates, issues, edits or records anything. Keep it that way until the API can.
+
 ## Tests
 
 ```bash
@@ -157,7 +204,12 @@ In end-to-end tests, find things by role (`getByRole`, or the helpers in `e2e/su
 The framework keeps pages visited earlier mounted but hidden, so `getByLabel` and
 `getByText` on the whole page can match a filter or a heading on a page that is not on
 screen. Queries by role skip what is hidden. Inside a dialog or a drawer that has been found
-by role, any query is safe.
+by role, any query is safe. While one is open, the page behind it is hidden from queries
+by role too, so read what a test needs from the list before opening a row.
+
+The demo data is dated from the day the seed runs, where each organization is. A test
+that needs "today" or "tomorrow" for a due date, a shift or a timesheet takes it from
+`organizationDay` in `e2e/support.ts`, not from the clock of the machine it runs on.
 
 ## Troubleshooting
 

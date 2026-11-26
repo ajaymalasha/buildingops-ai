@@ -23,8 +23,10 @@ honest: nothing is listed as working unless it is implemented and tested.
 | Append-only audit log with field-level change history | **Working** |
 | Web app shell, design system, typed API client | **Working** |
 | Master data: customers, buildings, vendors, job roles, employees, building assignments, contracts | **Working** (API, screens and demo data) |
-| Operational records: work orders with their history, shifts, timesheets and expenses, with approval of time and spending | **Working in the API**, with a year of demo data. Their screens come next |
-| Invoices and payments | **Read only in the API**, as seeded history. Generating invoices and recording payments are planned |
+| Work orders: a backlog to work from, with each order's status moves, comments and history | **Working** (API, screens and demo data) |
+| Schedule: a weekly roster for each building, with shifts added, changed and cancelled, and overlaps refused | **Working** (API, screens and demo data) |
+| Timesheets and expenses: entering them, and approving, rejecting and reopening them, with time approved several at once | **Working** (API, screens and demo data) |
+| Invoices and payments | **Read only** (API and screens), as seeded history: a list, and each invoice with its lines and the payments received. Generating invoices and recording payments are planned |
 | Executive dashboard, data import, entity resolution | Planned |
 | Workforce workflows, cost-plus billing | Planned |
 | RFP automation, voice agent, training studio (Claude) | Planned |
@@ -64,7 +66,7 @@ the password `BuildingOps-Demo-2026`.
 | --- | --- |
 | `dana.whitfield@meridianfs.example` | Company admin of two organizations (try the organization switcher) |
 | `marcus.okafor@meridianfs.example` | Operations manager |
-| `priya.raman@meridianfs.example` | Supervisor: reads the directory, but sees no pay rates and no contracts. In the API, also keeps work orders, shifts, timesheets and expenses, and approves time |
+| `priya.raman@meridianfs.example` | Supervisor: runs work orders and the schedule, enters and approves time (never her own) and enters expenses. Reads the directory, but sees no pay rates, labor costs, contracts or invoices, and approves no expenses |
 | `luis.ortega@meridianfs.example` | Employee |
 | `platform.admin@buildingops.example` | Platform admin: manages every organization |
 

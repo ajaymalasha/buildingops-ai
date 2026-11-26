@@ -129,8 +129,8 @@ above and add a few of their own.
 ## Operational records
 
 Work orders, shifts, timesheets, expenses, invoices and payments are the records that the
-dashboard, approvals and billing compute from. Today they exist in the API and in the demo
-data. Their screens are the next piece of work, and invoices and payments can only be read:
+dashboard, approvals and billing compute from. They exist in the API, in the demo data and
+in the web app. Invoices and payments can only be read, in the API and on screen alike:
 generating invoices from costs and recording payments belong to the billing module, which
 is not built.
 
@@ -197,6 +197,34 @@ is not built.
   `employees:read_compensation` there is no pay column, and without a write permission
   there are no buttons that change anything. The API enforces the same rules on its own.
 
+The screens for operational records follow the same rules and add a few of their own.
+
+- **Work orders** open on the live backlog. A row opens the work order in a drawer for
+  reading: its details, its history newest first, and a button for each move the API
+  allows from its status. The table of moves is copied from the API
+  (`features/work-orders/work-order-status.ts`) only to decide which buttons to show. The
+  API still decides, and refuses any other move. Nothing reads the API's table from the
+  web app: a unit test checks the copy against the API's table written out again, so the
+  two are changed together, by hand.
+- **The schedule** is a weekly roster for one building: a row for each person, a column
+  for each day. Cancelled shifts are left off unless asked for, and never count towards
+  anyone's hours.
+- **Timesheets** are an approval queue: a tab for each status with the API's counts, and
+  pending rows that can be ticked and approved together. Only what is on screen and
+  still pending is ever sent. **Expenses** are a list with the same decisions, one at a
+  time.
+- **Invoices** are read only. The drawer shows the API's totals, and adds up the lines
+  and the payments it lists to show that they come to them, saying so if they do not.
+- **Times.** The API takes and returns instants. A shift or a booking is entered as a
+  day and a clock time where the organization is, and `lib/dates.ts` turns one into the
+  other, including on the two nights a year when the clocks change. A time nobody
+  touched is not sent back: the clock cannot say which of two 1:30 AMs was meant, or
+  which second.
+- **Sums.** Where the browser adds up what is on screen (the hours ticked for approval,
+  the lines of an invoice) it does so on the decimal strings themselves, in
+  `lib/decimal.ts`. It never works out what anything costs: a timesheet's rate and labor
+  cost are the API's, and the forms do not send them.
+
 ## Testing
 
 | Level | What it covers | Where |
@@ -205,8 +233,8 @@ is not built.
 | Schema invariants | Row-level security and model/migration drift; every migration runs down and up | `apps/api/tests/test_schema_invariants.py` |
 | Database rules | CHECK and exclusion constraints, partial unique indexes and tenant-safe references, written to as the owner role | `apps/api/tests/test_master_data_constraints.py`, `test_operational_constraints.py` |
 | Demo data | The seed is repeatable, can run on any day, and its invoices add up to its costs | `apps/api/tests/test_seed_and_cli.py` |
-| Web unit and component | Proxy route, session handling, formatting, shared components, what each form checks and sends | `apps/web/src/**/*.test.ts(x)` |
-| End to end | Sign-in, each role, tenant isolation, and keeping master data, in a real browser against the real stack | `apps/web/e2e` |
+| Web unit and component | Proxy route, session handling, formatting, time zones and week arithmetic, exact decimal sums, shared components, what each form checks and sends, which status moves are offered | `apps/web/src/**/*.test.ts(x)` |
+| End to end | Sign-in, each role, tenant isolation, keeping master data, and running operations (work orders, the schedule, approving time and expenses, reading invoices), in a real browser against the real stack | `apps/web/e2e` |
 
 ## Planned (not built yet)
 

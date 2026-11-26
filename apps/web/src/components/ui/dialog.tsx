@@ -16,6 +16,11 @@ type DialogContentProps = {
   title: string;
   description?: string;
   size?: "md" | "lg";
+  /**
+   * Where focus starts, for a dialog that asks for one thing: the box it is typed into.
+   * Left out, focus starts on the first control, which is the close button.
+   */
+  initialFocus?: React.RefObject<HTMLElement | null>;
   className?: string;
   children: React.ReactNode;
 };
@@ -24,6 +29,7 @@ export function DialogContent({
   title,
   description,
   size = "md",
+  initialFocus,
   className,
   children,
 }: DialogContentProps) {
@@ -33,6 +39,14 @@ export function DialogContent({
       <DialogPrimitive.Content
         // Without a description, tell Radix there is deliberately nothing to point at.
         {...(description ? {} : { "aria-describedby": undefined })}
+        // Focus is moved as part of opening, so that it is put back there if whatever
+        // opened the dialog, a menu say, takes it for a moment as it closes.
+        onOpenAutoFocus={(event) => {
+          if (initialFocus?.current) {
+            event.preventDefault();
+            initialFocus.current.focus();
+          }
+        }}
         className={cn(
           "fixed top-[10vh] left-1/2 z-50 flex max-h-[80vh] w-[calc(100vw-2rem)] -translate-x-1/2 animate-pop-in flex-col rounded-lg border border-line bg-surface shadow-overlay focus:outline-none",
           size === "md" ? "max-w-md" : "max-w-xl",
