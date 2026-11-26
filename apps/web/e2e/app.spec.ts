@@ -74,7 +74,9 @@ test.describe("a company admin", () => {
       "Organization",
       "Audit log",
     ]);
-    await expect(page.getByText("Add members and change their roles")).toBeVisible();
+    // An admin's overview is the dashboard, which has a spec of its own.
+    await expect(page.getByRole("group", { name: "Revenue" })).toContainText("$");
+    await expect(page.getByRole("heading", { name: "Needs attention" })).toBeVisible();
     await shot(page, "03-overview");
   });
 
@@ -213,6 +215,9 @@ test.describe("an employee", () => {
 
     await expect(mainNavigation(page).getByRole("link")).toHaveText(["Overview", "Organization"]);
     await expect(page.getByText("Activity is visible to managers")).toBeVisible();
+    // The overview says what the role may do, and offers no figures to someone without them.
+    await expect(page.getByText("View organization details")).toBeVisible();
+    await expect(page.getByRole("group", { name: "Revenue" })).toHaveCount(0);
     await shot(page, "10-employee-overview");
 
     // Hiding the link is a convenience. The API is what refuses.
