@@ -3321,6 +3321,8 @@ export interface operations {
                 job_role_id?: string | null;
                 /** @description Employees with an open assignment at this building. */
                 building_id?: string | null;
+                /** @description True for employees whose job role is supervisory, false for the rest. */
+                supervisory?: boolean | null;
                 /** @description One of name (last, first), employee_number, hire_date, created_at. Prefix with - to reverse. */
                 sort?: string | null;
             };

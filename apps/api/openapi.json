@@ -6755,6 +6755,24 @@
             }
           },
           {
+            "description": "True for employees whose job role is supervisory, false for the rest.",
+            "in": "query",
+            "name": "supervisory",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "True for employees whose job role is supervisory, false for the rest.",
+              "title": "Supervisory"
+            }
+          },
+          {
             "description": "One of name (last, first), employee_number, hire_date, created_at. Prefix with - to reverse.",
             "in": "query",
             "name": "sort",

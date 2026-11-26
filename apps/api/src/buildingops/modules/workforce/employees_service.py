@@ -107,6 +107,8 @@ def list_employees(ctx: Context, filters: EmployeeFilters) -> tuple[list[Employe
             )
             .exists()
         )
+    if filters.supervisory is not None:
+        statement = statement.where(JobRole.is_supervisory.is_(filters.supervisory))
     statement = crud.search(
         statement,
         filters.q,

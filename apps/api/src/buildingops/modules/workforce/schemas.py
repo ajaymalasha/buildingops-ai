@@ -160,6 +160,10 @@ class EmployeeFilters(PageParams):
     building_id: UUID | None = Field(
         default=None, description="Employees with an open assignment at this building."
     )
+    supervisory: bool | None = Field(
+        default=None,
+        description="True for employees whose job role is supervisory, false for the rest.",
+    )
     sort: str | None = Field(
         default=None,
         description=(

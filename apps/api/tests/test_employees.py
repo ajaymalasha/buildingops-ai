@@ -60,7 +60,7 @@ def test_listing_supports_search_filters_and_sorting(make_actor: ActorFactory, f
     admin = make_actor()
     organization = admin.organization
     porter = factory.job_role(organization, name="Day Porter")
-    supervisor = factory.job_role(organization, name="Site Supervisor")
+    supervisor = factory.job_role(organization, name="Site Supervisor", is_supervisory=True)
     tower = factory.building(organization, name="Tower One")
     zamora = factory.employee(
         organization,
@@ -98,6 +98,9 @@ def test_listing_supports_search_filters_and_sorting(make_actor: ActorFactory, f
     assert names(job_role_id=str(porter.id)) == ["Al Adams", "Bo Adams"]
     assert names(status="on_leave") == names(employment_type="part_time") == ["Bo Adams"]
     assert names(building_id=str(tower.id)) == ["Ana Zamora"]
+    # Whether their job role is a supervisory one: the people who can be someone's supervisor.
+    assert names(supervisory="true") == ["Ana Zamora"]
+    assert names(supervisory="false") == ["Al Adams", "Bo Adams"]
     assert names(q="ana zam") == names(q="e-100") == ["Ana Zamora"]
     assert names(q="BO.ADAMS@") == ["Bo Adams"]
     assert names(page_size=2, page=2) == ["Ana Zamora"]
