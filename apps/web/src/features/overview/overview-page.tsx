@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader, Panel } from "@/components/ui/page";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, ErrorState } from "@/components/ui/states";
+import { DashboardPage } from "@/features/dashboard/dashboard-page";
 import { $api } from "@/lib/api/client";
 import { problemMessage } from "@/lib/api/problem";
 import { formatRelative } from "@/lib/format";
@@ -44,12 +45,21 @@ const PERMISSION_PHRASES: Record<Permission, string> = {
   "expenses:write": "Enter and edit expenses",
   "expenses:approve": "Approve and reject expenses",
   "invoices:read": "View invoices and payments",
+  "dashboard:read": "See revenue, costs and margins on the dashboard",
   "platform:organizations": "Manage organizations across the platform",
 };
 
 export function OverviewPage() {
   const me = useMe();
-  return me.organization ? <OrganizationOverview /> : <NoOrganization />;
+  return me.organization ? <OrganizationHome /> : <NoOrganization />;
+}
+
+/**
+ * Where someone lands in their organization: the dashboard, for those whose role includes
+ * it, and for everyone else what was recently done and what they may do.
+ */
+function OrganizationHome() {
+  return useCan("dashboard:read") ? <DashboardPage /> : <OrganizationOverview />;
 }
 
 function NoOrganization() {

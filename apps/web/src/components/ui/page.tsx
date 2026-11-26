@@ -13,7 +13,10 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
         <h1 className="text-[22px] leading-7 font-semibold text-ink">{title}</h1>
         {description ? <p className="mt-1 max-w-2xl text-ink-muted">{description}</p> : null}
       </div>
-      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+      {/* Never wider than the page: on the narrowest phones what is here wraps instead. */}
+      {actions ? (
+        <div className="flex max-w-full shrink-0 flex-wrap items-center gap-2">{actions}</div>
+      ) : null}
     </div>
   );
 }

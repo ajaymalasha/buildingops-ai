@@ -2,6 +2,8 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { BarChart, ChartLegend, type ChartPoint, type ChartSeries } from "./bar-chart";
+import { BalanceBar, ShareBar } from "./bars";
 import { Button } from "./button";
 import { Blank, NameCell, StackedCell } from "./cells";
 import { Checkbox } from "./checkbox";
@@ -1451,5 +1453,262 @@ describe("DropdownMenu", () => {
     await userEvent.click(screen.getByRole("menuitem", { name: "Edit building" }));
     expect(onEdit).toHaveBeenCalledOnce();
     expect(screen.queryByRole("menu")).not.toBeInTheDocument(); // choosing closes it
+  });
+});
+
+describe("BarChart", () => {
+  const series: ChartSeries[] = [
+    { key: "revenue", label: "Revenue", tone: "brand" },
+    { key: "labor", label: "Labor", tone: "graphite", stack: "cost" },
+    { key: "expenses", label: "Expenses", tone: "muted", stack: "cost" },
+  ];
+  const point = (
+    key: string,
+    label: string,
+    values: [number, number, number],
+    extra: Partial<ChartPoint> = {},
+  ): ChartPoint => ({
+    key,
+    label,
+    title: `${label} 2026`,
+    values: { revenue: values[0], labor: values[1], expenses: values[2] },
+    cells: [
+      { text: `$${values[0]}` },
+      { text: `$${values[1]}` },
+      { text: `$${values[2]}` },
+      {
+        text: `$${values[0] - values[1] - values[2]}`,
+        critical: values[0] < values[1] + values[2],
+      },
+    ],
+    ...extra,
+  });
+  const points = [
+    point("sep", "Sep", [300, 150, 50]),
+    point("oct", "Oct", [100, 150, 50]),
+    point("nov", "Nov", [200, 60, 20], {
+      partial: true,
+      detail: "to date",
+      title: "Nov 2026, to date",
+    }),
+  ];
+
+  function chart(props: Partial<React.ComponentProps<typeof BarChart>> = {}) {
+    return render(
+      <BarChart
+        label="Revenue and cost by month"
+        series={series}
+        points={points}
+        headings={["Month", "Revenue", "Labor", "Expenses", "Margin"]}
+        formatTick={(value) => `$${value}`}
+        {...props}
+      />,
+    );
+  }
+  const plot = () => screen.getByRole("img");
+  const column = (key: string) => plot().querySelector<HTMLElement>(`[data-point="${key}"]`)!;
+  const bars = (key: string) => [...column(key).children] as HTMLElement[];
+
+  it("says in a table everything it draws, for those who cannot see the drawing", () => {
+    chart();
+
+    const table = screen.getByRole("table", { name: "Revenue and cost by month" });
+    expect(
+      within(table)
+        .getAllByRole("row")
+        .map((row) => [...row.querySelectorAll("th, td")].map((cell) => cell.textContent)),
+    ).toEqual([
+      ["Month", "Revenue", "Labor", "Expenses", "Margin"],
+      ["Sep 2026", "$300", "$150", "$50", "$100"],
+      ["Oct 2026", "$100", "$150", "$50", "$-100"],
+      ["Nov 2026, to date", "$200", "$60", "$20", "$120"],
+    ]);
+    // Hidden from the eye by what it is wrapped in: a table itself cannot be clipped to
+    // nothing, and would be as wide as its figures, somewhere off the screen.
+    expect(table).not.toHaveClass("sr-only");
+    expect(table.parentElement).toHaveClass("sr-only");
+    expect(plot()).toHaveAccessibleName(
+      "Revenue and cost by month. The figures are in the table that follows.",
+    );
+  });
+
+  it("starts its axis at zero and draws each bar in proportion to its figure", () => {
+    chart();
+
+    // The tallest bar stands for 300, so the axis is marked from 0 to 300.
+    const marks = [...plot().parentElement!.firstElementChild!.children];
+    expect(marks.map((mark) => mark.textContent)).toEqual(["$0", "$100", "$200", "$300"]);
+    expect((marks[0] as HTMLElement).style.bottom).toBe("0%");
+    expect((marks[3] as HTMLElement).style.bottom).toBe("100%");
+
+    // September: revenue of 300 fills the plot, and costs of 200 reach two thirds of it.
+    const [revenue, cost] = bars("sep");
+    expect(revenue!.style.height).toBe("100%");
+    expect(Number.parseFloat(cost!.style.height)).toBeCloseTo(66.67, 1);
+    expect(Number.parseFloat(bars("oct")[0]!.style.height)).toBeCloseTo(33.33, 1);
+  });
+
+  it("stacks the series that share a stack, the first at the bottom, in their own tones", () => {
+    chart();
+
+    const [revenue, cost] = bars("sep");
+    expect([...revenue!.children].map((part) => part.getAttribute("data-series"))).toEqual([
+      "revenue",
+    ]);
+    const [labor, expenses] = [...cost!.children] as HTMLElement[];
+    expect([labor!.dataset.series, expenses!.dataset.series]).toEqual(["labor", "expenses"]);
+    // Drawn bottom first, each as tall as its share of the stack.
+    expect(cost).toHaveClass("flex-col-reverse");
+    expect([labor!.style.flexGrow, expenses!.style.flexGrow]).toEqual(["150", "50"]);
+    expect(revenue!.firstElementChild).toHaveClass("bg-brand-600");
+    expect(labor).toHaveClass("bg-ink-muted");
+    expect(expenses).toHaveClass("bg-line-strong");
+  });
+
+  it("hatches a point that is not final, and says what it is under its column", () => {
+    chart();
+
+    for (const part of column("nov").querySelectorAll("[data-series]")) {
+      expect(part).toHaveClass("hatched");
+    }
+    for (const part of column("oct").querySelectorAll("[data-series]")) {
+      expect(part).not.toHaveClass("hatched");
+    }
+    expect(screen.getByText("to date")).toBeInTheDocument();
+  });
+
+  it("can spare every other label under narrow columns, but never the last one", () => {
+    const labels = ["Jul", "Aug", "Sep", "Oct", "Nov"];
+    chart({ points: labels.map((label) => point(label, label, [100, 50, 10])) });
+
+    // Jsdom lays nothing out. What leaves a label out is a class that takes effect in a
+    // column narrower than a label, and each column is a container, so knows its width.
+    const spared = (label: string) =>
+      screen.getByText(label).classList.contains("@max-[25px]:invisible");
+    expect(labels.map(spared)).toEqual([false, true, false, true, false]);
+    for (const label of labels) {
+      expect(screen.getByText(label).parentElement).toHaveClass("@container");
+    }
+  });
+
+  it("marks an axis of counts in whole numbers", () => {
+    chart({
+      series: [{ key: "revenue", label: "Opened", tone: "graphite" }],
+      points: [point("sep", "Sep", [3, 0, 0])],
+      headings: ["Month", "Opened"],
+      formatTick: String,
+      whole: true,
+    });
+
+    const marks = [...plot().parentElement!.firstElementChild!.children];
+    expect(marks.map((mark) => mark.textContent)).toEqual(["0", "1", "2", "3"]);
+  });
+
+  it("shows a column's figures while it is pointed at", async () => {
+    chart();
+    expect(within(plot()).queryByText("Oct 2026")).not.toBeInTheDocument();
+
+    await userEvent.hover(column("oct"));
+
+    const figures = within(plot()).getByText("Oct 2026").parentElement!;
+    expect(figures).toHaveAttribute("aria-hidden", "true"); // the table says it to a screen reader
+    expect(
+      [...figures.querySelectorAll("dl > div")].map((row) => [
+        row.querySelector("dt")!.textContent,
+        row.querySelector("dd")!.textContent,
+      ]),
+    ).toEqual([
+      ["Revenue", "$100"],
+      ["Labor", "$150"],
+      ["Expenses", "$50"],
+      ["Margin", "$-100"],
+    ]);
+    // A loss is in the critical colour. What follows from the bars is set under a rule.
+    expect(within(figures).getByText("$-100")).toHaveClass("text-critical");
+    expect(within(figures).getByText("$100")).not.toHaveClass("text-critical");
+    expect(within(figures).getByText("Margin").parentElement).toHaveClass("border-t");
+    expect(within(figures).getByText("Expenses").parentElement).not.toHaveClass("border-t");
+
+    await userEvent.hover(column("sep"));
+    expect(within(plot()).getByText("Sep 2026")).toBeInTheDocument();
+    expect(within(plot()).queryByText("Oct 2026")).not.toBeInTheDocument();
+
+    await userEvent.unhover(plot());
+    expect(within(plot()).queryByText("Sep 2026")).not.toBeInTheDocument();
+  });
+
+  it("can be stepped through with the arrow keys, starting from the latest point", async () => {
+    chart();
+
+    await userEvent.tab();
+    expect(plot()).toHaveFocus();
+    expect(within(plot()).getByText("Nov 2026, to date")).toBeInTheDocument();
+
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(within(plot()).getByText("Oct 2026")).toBeInTheDocument();
+    await userEvent.keyboard("{Home}");
+    expect(within(plot()).getByText("Sep 2026")).toBeInTheDocument();
+    await userEvent.keyboard("{ArrowLeft}"); // already at the first: stays there
+    expect(within(plot()).getByText("Sep 2026")).toBeInTheDocument();
+    await userEvent.keyboard("{End}{ArrowRight}");
+    expect(within(plot()).getByText("Nov 2026, to date")).toBeInTheDocument();
+
+    await userEvent.keyboard("{Escape}");
+    expect(within(plot()).queryByText("Nov 2026, to date")).not.toBeInTheDocument();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(within(plot()).getByText("Sep 2026")).toBeInTheDocument();
+    await userEvent.tab();
+    expect(within(plot()).queryByText("Sep 2026")).not.toBeInTheDocument();
+  });
+
+  it("names its colours in a legend, and what hatching means", () => {
+    render(<ChartLegend series={series} partial="Month to date" />);
+
+    expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
+      "Revenue",
+      "Labor",
+      "Expenses",
+      "Month to date",
+    ]);
+    expect(screen.getByText("Month to date").firstElementChild).toHaveClass("hatched");
+    expect(screen.getByText("Revenue").firstElementChild).toHaveClass("bg-brand-600");
+  });
+});
+
+describe("bars in a row", () => {
+  it("fill a share of their room, and never more than all of it", () => {
+    const { container } = render(
+      <>
+        <ShareBar percent={83.2} />
+        <ShareBar percent={140} tone="muted" />
+        <ShareBar percent={-5} />
+      </>,
+    );
+    const bars = [...container.querySelectorAll<HTMLElement>("span > span")];
+
+    expect(bars.map((bar) => bar.style.width)).toEqual(["83.2%", "100%", "0%"]);
+    expect(bars[0]).toHaveClass("bg-ink-muted");
+    expect(bars[1]).toHaveClass("bg-line-strong");
+    // Decoration: the figure beside it is what is read out.
+    expect(container.firstElementChild).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("grow from the middle: right in pine for a gain, left in the critical colour for a loss", () => {
+    const { container } = render(
+      <>
+        <BalanceBar percent={38.9} />
+        <BalanceBar percent={-21.5} />
+        <BalanceBar percent={-128.6} />
+        <BalanceBar percent={0} />
+      </>,
+    );
+    // The second span of each is the bar. The first is the line down the middle.
+    const bars = [...container.querySelectorAll<HTMLElement>("span > span:last-child")];
+
+    // Half the room is each side's, so a full bar is 50% wide.
+    expect(bars.map((bar) => bar.style.width)).toEqual(["19.45%", "10.75%", "50%", "0%"]);
+    expect(bars[0]).toHaveClass("left-1/2", "bg-brand-600");
+    expect(bars[1]).toHaveClass("right-1/2", "bg-critical");
+    expect(bars[2]).toHaveClass("right-1/2", "bg-critical");
   });
 });

@@ -57,6 +57,37 @@
 - A list of dated records filters with `from` and `to` through
   `pagination.between_dates`.
 
+### Adding a figure to the dashboard
+
+`modules/analytics` reads and never writes. `definitions.py` says which records a figure
+counts and on which day, `service.py` asks PostgreSQL to add them up, and
+`docs/architecture.md` states each definition in words. Change all three together.
+
+- **Define it once.** A figure counted over a period is a `Figure`: what is added up, the
+  day a record counts on, and the conditions a record meets. The summary, the months, the
+  contracts and the buildings all build on the same `Figure`, which is what keeps a total
+  equal to the sum of its breakdown. Start the conditions with `crud.live(ctx, Model)`.
+- **Add up in SQL.** Never load rows to add them in Python. To put several figures side
+  by side for each month, contract or building, give `_side_by_side` one part per table:
+  it is one statement however many figures there are. Keep to a handful of statements an
+  endpoint: `test_each_endpoint_asks_the_database_a_handful_of_questions` counts them.
+- **Days.** Compare a date column with the period directly. Turn a timestamp into the
+  organization's day with `definitions.local_day` first, in SQL, never after loading.
+- **Arithmetic.** Sums come back as `Decimal`, and `total(...)` makes an empty sum
+  `0.00`, not null. Take a percentage with `_percent`: one decimal place, half up, and
+  `None` when there is nothing to take it of. Never return a made-up zero.
+- **Narrowing.** Decide what a building and a customer mean for the new figure, and if
+  either cannot narrow it exactly, add it to `scope` in the summary so that the screen
+  can say so.
+- **Prove it.** Add records to the `books` fixture in `tests/test_dashboard.py` that
+  count and records that must not (the wrong status, a day outside the period, another
+  organization), work the expected figure out by hand in a comment, and assert it
+  exactly. Then check it against the demo data in `tests/test_seed_and_cli.py`, where the
+  API's figure is compared with a sum taken straight from the table.
+- **One condition for a count and its list.** If a list can be filtered to the records a
+  figure counts, use the list's own condition, as overdue invoices and overdue work
+  orders do, and link the figure to that list in the web app.
+
 ### Adding a tenant table
 
 1. Define the model with `TenantMixin`. Reference other tenant tables with `tenant_fk`. If
@@ -128,7 +159,10 @@ as it is made.
 - **Codes.** `code`, `employee_number` and `contract_number` may be left blank when adding:
   send `null` and the API issues the next one. Say so in the field's hint.
 - **Money.** An amount is a decimal string in the form and in the request. Use
-  `formatMoney` and `formatPercent` to show one. Never call `Number()` on money.
+  `formatMoney` and `formatPercent` to show one. Never call `Number()` on money. The one
+  exception is drawing: `lib/chart.ts` turns an amount into a number to say how long a
+  bar is, or which of two is the longer, and nothing that comes out of it is ever shown
+  as a figure.
 - **Pay rates.** Leave the field out of the form, and out of the request, for someone
   without `employees:read_compensation`. The API refuses a request that mentions a rate
   from them, even a blank one, because it would erase a figure they cannot see.
@@ -182,6 +216,53 @@ reusing before writing anything new.
 - **Nothing that does nothing.** Invoices can only be read, so their page has no button
   that creates, issues, edits or records anything. Keep it that way until the API can.
 
+### The dashboard
+
+`features/dashboard` is a report, not a list, and is laid out as one: bands of figures
+between rules, sections told apart by rules and space (`ReportSection`), no cards.
+
+- **Figures are the API's.** Show the decimal strings it sends with `formatMoney`,
+  `formatPercentPoint` and, on a chart's axis only, `formatMoneyTick` (`$250K`). Do not
+  add, subtract or divide them in the browser, even to "just show the difference": ask
+  the API for the figure. Read a sign off the string (`isNegative`), not off a number.
+- **The period.** `dashboard-period.ts` turns the URL into a pair of days and back, and
+  holds the presets. They are worked out from `todayInZone(organization.timezone)`. Month,
+  quarter and year arithmetic is in `lib/dates.ts`.
+- **Links.** A figure that counts records links to the list that shows exactly those
+  records, through `figureLinks`. If the list cannot be narrowed the way the dashboard
+  is, return `null` and the figure is shown without a link. When a list gains a filter,
+  give the dashboard the link, and add the pair to the end-to-end test that follows each
+  count to its list and compares the two numbers.
+- **Charts.** Use `BarChart` (`components/ui/bar-chart.tsx`): give it the series, a number
+  for each bar, and the same figures as text for the tooltip and the table. Pine is for
+  what comes in, graphite and the quiet tone for costs, and the critical colour only for
+  a loss or something overdue. Mark what is not final as `partial`. A bar in a table row
+  is a `ShareBar` or a `BalanceBar` (`components/ui/bars.tsx`). There is no charting
+  library, on purpose: see [decision 0004](decisions/0004-dashboard-charts.md).
+- **Widths.** Inside the dashboard use container variants (`@4xl:grid-cols-4`,
+  `@max-2xl:hidden`), not window breakpoints (`lg:`): the page is much narrower than the
+  window when the sidebar is beside it. `ReportSection` is a container, so what is inside
+  one answers to the width of its section. When a table has to lose a column, move what
+  was in it under another cell rather than dropping it or scrolling sideways, as the
+  contracts table does, and the buildings with their hours. A chart's columns are
+  containers too: under columns narrower than a label, every other label is left out,
+  never the last. Jsdom lays nothing out, so a component test can only check the class
+  that does this. The end-to-end test that loads the dashboard from 320 to 1280 pixels
+  wide is what checks that nothing is cut, overlaps or scrolls sideways: add to it when
+  something new has to fit.
+- **Sizes that follow the figures.** The four amounts at the top are set in one size,
+  made smaller together when the longest would not fit its cell (`amountSize`). A screen
+  reader's table sits in an `sr-only` wrapper, never on the table itself: a table cannot
+  be clipped, and one left off-screen makes a phone scroll sideways.
+- **States.** Each part has its own request, a placeholder in its own shape while that
+  loads (`…Skeleton`), and `SectionError` if it fails, so one failure never blanks the
+  page. Keep the last figures on screen, dimmed, while a new period loads
+  (`placeholderData: keepPreviousData`).
+- **Labels without forms.** Take the names of expense categories and billing models from
+  `expense-categories.ts` and `billing-models.ts`, not from the form schemas beside them,
+  which bring the validation library with them. The dashboard is the first page people
+  see, and loads neither forms nor their validation.
+
 ## Tests
 
 ```bash
@@ -199,6 +280,11 @@ To save screenshots while the end-to-end tests run:
 ```bash
 E2E_SCREENSHOT_DIR=/tmp/buildingops-screens pnpm e2e
 ```
+
+A test takes one with `shot(page, name)` from `e2e/support.ts`. For a page taller than the
+window pass `{ wholePage: true }`, which makes the window as tall as the page for the
+picture, so that the sidebar and the header are drawn where they belong. For a page that
+is still waiting for an answer pass `{ whileLoading: true }`.
 
 In end-to-end tests, find things by role (`getByRole`, or the helpers in `e2e/support.ts`).
 The framework keeps pages visited earlier mounted but hidden, so `getByLabel` and

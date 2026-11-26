@@ -140,6 +140,20 @@
   color: var(--color-ink-subtle);
 }
 
+/*
+ * Diagonal hatching in the element's own text colour, with nothing behind it. Marks a
+ * figure in a chart that is not final yet, such as the month still running.
+ */
+@utility hatched {
+  background-image: repeating-linear-gradient(
+    135deg,
+    currentColor 0,
+    currentColor 1.5px,
+    transparent 1.5px,
+    transparent 4.5px
+  );
+}
+
 /* Drafting-paper grid, used on the sign-in page. */
 @utility blueprint {
   background-image:

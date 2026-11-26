@@ -59,6 +59,22 @@ export function formatLongDay(date: string): string {
   }).format(calendarDay(date));
 }
 
+/** "Nov" for a calendar date: its month, as a chart labels it. */
+export function formatMonth(date: string): string {
+  return new Intl.DateTimeFormat(LOCALE, { month: "short", timeZone: "UTC" }).format(
+    calendarDay(date),
+  );
+}
+
+/** "November 2026" for a calendar date: its month, in full. */
+export function formatMonthYear(date: string): string {
+  return new Intl.DateTimeFormat(LOCALE, {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(calendarDay(date));
+}
+
 /**
  * "Nov 23 – 29, 2026" for a run of calendar days. What the two ends share is said once:
  * "Nov 30 – Dec 6, 2026", "Dec 28, 2026 – Jan 3, 2027".
@@ -113,12 +129,19 @@ export function formatDuration(minutes: number): string {
 
 const DECIMAL = /^-?\d+(\.\d+)?$/;
 
+// A number below zero is written with a minus sign, not the hyphen a keyboard has. The
+// hyphen is short enough to miss before a currency symbol, and a screen reader may not
+// read it at all, which would turn a loss into a gain.
+const withMinusSign = (text: string) => text.replace("-", "\u2212");
+
 // The API sends amounts as decimal strings ("18400.00"). Intl formats such a string digit
 // for digit, so an amount is never turned into a floating-point number on its way to the
 // screen. Anything that is not a decimal is shown as it came.
 function formatDecimal(value: string, options: Intl.NumberFormatOptions): string {
   if (!DECIMAL.test(value)) return value;
-  return new Intl.NumberFormat(LOCALE, options).format(value as Intl.StringNumericLiteral);
+  return withMinusSign(
+    new Intl.NumberFormat(LOCALE, options).format(value as Intl.StringNumericLiteral),
+  );
 }
 
 /** "$18,400.00" from "18400.00" and "USD". Display only: amounts stay strings elsewhere. */
@@ -126,9 +149,72 @@ export function formatMoney(value: string, currency: string): string {
   return formatDecimal(value, { style: "currency", currency });
 }
 
+/**
+ * An amount in two parts, "$18,400" and ".00", for where the cents are set smaller than
+ * the rest. Together they are exactly what `formatMoney` gives. A currency without cents
+ * has no second part.
+ */
+export function moneyParts(value: string, currency: string): { whole: string; cents: string } {
+  const formatted = formatMoney(value, currency);
+  if (!DECIMAL.test(value)) return { whole: formatted, cents: "" };
+  const separator = new Intl.NumberFormat(LOCALE, { style: "currency", currency })
+    .formatToParts(value as Intl.StringNumericLiteral)
+    .find((part) => part.type === "decimal")?.value;
+  const at = separator ? formatted.lastIndexOf(separator) : -1;
+  return at < 0
+    ? { whole: formatted, cents: "" }
+    : { whole: formatted.slice(0, at), cents: formatted.slice(at) };
+}
+
+/**
+ * "$1.2M", "$48.3K", "$950": an amount at a glance, for a chart or a crowded corner. It is
+ * rounded, so the exact amount belongs wherever this one is read rather than glanced at.
+ */
+export function formatMoneyCompact(value: string, currency: string): string {
+  // Below a thousand there is nothing to abbreviate: whole units of the currency.
+  const whole = /^-?(\d+)/.exec(value)?.[1] ?? "";
+  return whole.length <= 3
+    ? formatDecimal(value, { style: "currency", currency, maximumFractionDigits: 0 })
+    : formatDecimal(value, {
+        style: "currency",
+        currency,
+        notation: "compact",
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      });
+}
+
+/**
+ * "$250K", "$1.5M", "$0": a mark on the money axis of a chart, as short as it can be
+ * without rounding. The marks are round numbers, so two places are always enough.
+ */
+export function formatMoneyTick(value: number, currency: string): string {
+  return withMinusSign(
+    new Intl.NumberFormat(LOCALE, {
+      style: "currency",
+      currency,
+      notation: "compact",
+      maximumFractionDigits: 2,
+    }).format(value),
+  );
+}
+
 /** "12.5%" from "12.50": a rate as people say it, without trailing zeros. */
 export function formatPercent(value: string): string {
   return formatDecimal(value, { style: "unit", unit: "percent", maximumFractionDigits: 2 });
+}
+
+/**
+ * "12.0%" from "12.0": a percentage among others, always to one place so that a column of
+ * them lines up. The API works percentages out to one place, so nothing is rounded here.
+ */
+export function formatPercentPoint(value: string): string {
+  return formatDecimal(value, {
+    style: "unit",
+    unit: "percent",
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
 }
 
 /** "7.50" from "7.5": hours worked, always to two places so that a column of them lines up. */
