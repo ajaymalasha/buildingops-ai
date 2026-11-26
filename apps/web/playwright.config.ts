@@ -34,7 +34,13 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 1 : 0,
+  // These are long journeys (sign in, fill in forms, approve, read the history back), and a
+  // CI runner is slower than a laptop: the longest takes over the default 30 seconds there.
+  timeout: 90_000,
+  // No retries. The database is rebuilt once per run, not once per test, so a second
+  // attempt meets the records the first one created and fails for a different reason.
+  // That hides what actually went wrong, so a failure is reported as it happened.
+  retries: 0,
   reporter: process.env.CI ? [["github"], ["list"]] : "list",
   use: {
     baseURL: `http://localhost:${WEB_PORT}`,
