@@ -8416,6 +8416,25 @@
             }
           },
           {
+            "description": "Contracts that cover this building.",
+            "in": "query",
+            "name": "building_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Contracts that cover this building.",
+              "title": "Building Id"
+            }
+          },
+          {
             "description": "One of name, contract_number, start_date, end_date, created_at. Prefix with - to reverse.",
             "in": "query",
             "name": "sort",

@@ -83,6 +83,16 @@ def list_contracts(ctx: Context, filters: ContractFilters) -> tuple[list[Contrac
         statement = statement.where(Contract.billing_model == filters.billing_model)
     if filters.customer_id:
         statement = statement.where(Contract.customer_id == filters.customer_id)
+    if filters.building_id:
+        statement = statement.where(
+            select(ContractBuilding.id)
+            .where(
+                ContractBuilding.organization_id == Contract.organization_id,
+                ContractBuilding.contract_id == Contract.id,
+                ContractBuilding.building_id == filters.building_id,
+            )
+            .exists()
+        )
     statement = crud.search(
         statement, filters.q, Contract.name, Contract.contract_number, Customer.name
     )

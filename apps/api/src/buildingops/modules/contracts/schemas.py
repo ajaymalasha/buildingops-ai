@@ -122,6 +122,9 @@ class ContractFilters(PageParams):
     status: ContractStatus | None = None
     billing_model: BillingModel | None = None
     customer_id: UUID | None = None
+    building_id: UUID | None = Field(
+        default=None, description="Contracts that cover this building."
+    )
     sort: str | None = Field(
         default=None,
         description=(

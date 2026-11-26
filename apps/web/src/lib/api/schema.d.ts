@@ -4024,6 +4024,8 @@ export interface operations {
                 status?: components["schemas"]["ContractStatus"] | null;
                 billing_model?: components["schemas"]["BillingModel"] | null;
                 customer_id?: string | null;
+                /** @description Contracts that cover this building. */
+                building_id?: string | null;
                 /** @description One of name, contract_number, start_date, end_date, created_at. Prefix with - to reverse. */
                 sort?: string | null;
             };
