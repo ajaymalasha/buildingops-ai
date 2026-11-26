@@ -33,7 +33,7 @@ db-bootstrap: ## Create the database roles and databases (needs a Postgres super
 migrate: ## Apply database migrations
 	cd $(API) && uv run alembic upgrade head
 
-seed: ## Load demo organizations and accounts
+seed: ## Load demo organizations, accounts and master data
 	cd $(API) && uv run buildingops seed
 
 # --- Running ------------------------------------------------------------------------------

@@ -17,7 +17,7 @@ from buildingops.core.db import Database
 from buildingops.core.errors import ValidationFailedError
 from buildingops.core.security import PasswordService
 from buildingops.modules.identity.models import User
-from buildingops.seed import demo
+from buildingops.seed import demo, master_data
 
 
 def _passwords(settings: Settings) -> PasswordService:
@@ -42,6 +42,7 @@ def cmd_seed(args: argparse.Namespace) -> int:
     try:
         with database.session() as db:
             report = demo.seed_identity(db, _passwords(settings), settings.seed_demo_password)
+            directories = master_data.seed_master_data(db)
             db.commit()
     finally:
         database.dispose()
@@ -50,6 +51,14 @@ def cmd_seed(args: argparse.Namespace) -> int:
         f"Seed complete: {report.organizations_created} organizations, "
         f"{report.users_created} users, {report.memberships_created} memberships created."
     )
+    for directory in directories:
+        print(
+            f"  {directory.organization_slug}: {directory.customers} customers, "
+            f"{directory.buildings} buildings, {directory.vendors} vendors, "
+            f"{directory.job_roles} job roles, {directory.employees} employees, "
+            f"{directory.assignments} building assignments, "
+            f"{directory.contracts} contracts created."
+        )
     print(f"\nDemo accounts (password: {settings.seed_demo_password})")
     for account in demo.ACCOUNTS:
         if account.is_platform_admin:
@@ -115,7 +124,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="buildingops", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
 
-    seed = commands.add_parser("seed", help="Load demo organizations and accounts")
+    seed = commands.add_parser(
+        "seed", help="Load demo organizations, accounts and their master data"
+    )
     seed.add_argument("--allow-production", action="store_true")
     seed.set_defaults(handler=cmd_seed)
 

@@ -15,7 +15,14 @@ from buildingops.core.db import Database, DbContext
 from buildingops.core.models import utcnow
 from buildingops.core.permissions import Role
 from buildingops.modules.audit.models import AuditLog
+from buildingops.modules.buildings.models import Building
+from buildingops.modules.contracts.models import Contract, ContractBuilding
+from buildingops.modules.customers.models import Customer
 from buildingops.modules.identity.models import Membership, MembershipStatus, Organization
+from buildingops.modules.sequences import service as sequences
+from buildingops.modules.sequences.models import OrganizationSequence
+from buildingops.modules.vendors.models import Vendor
+from buildingops.modules.workforce.models import BuildingAssignment, Employee, JobRole
 from tests.conftest import Factory, make_settings
 
 
@@ -197,3 +204,67 @@ def test_the_app_role_cannot_change_audit_entries(app_database: Database, two_or
         result = db.execute(text("UPDATE audit_logs SET summary = 'rewritten'"))
 
     assert result.rowcount == 0  # no UPDATE policy: the rows are not even candidates
+
+
+# --- master data -------------------------------------------------------------------------
+
+MASTER_DATA = (
+    OrganizationSequence,
+    Customer,
+    Building,
+    Vendor,
+    JobRole,
+    Employee,
+    BuildingAssignment,
+    Contract,
+    ContractBuilding,
+)
+
+
+@pytest.fixture
+def two_directories(factory: Factory, admin_database: Database):
+    """Two organizations with at least one row each in every master-data table."""
+    alpha, bravo = factory.organization(), factory.organization()
+    for organization in (alpha, bravo):
+        customer = factory.customer(organization)
+        building = factory.building(organization, customer)
+        factory.assignment(factory.employee(organization), building)
+        factory.contract(organization, customer, buildings=[building])
+        factory.vendor(organization)
+        with admin_database.session() as db:
+            sequences.allocate_code(db, organization.id, "customer", "CUS")
+            db.commit()
+    return alpha, bravo
+
+
+def test_master_data_is_visible_only_inside_its_organization(
+    app_database: Database, two_directories
+):
+    alpha, _ = two_directories
+
+    with app_database.session(DbContext(organization_id=alpha.id)) as db:
+        for model in MASTER_DATA:
+            assert set(db.scalars(select(model.organization_id))) == {alpha.id}, model
+
+    # Without an organization there is nothing to see, platform administrator or not.
+    for outside in (DbContext(), DbContext(platform_admin=True)):
+        with app_database.session(outside) as db:
+            for model in MASTER_DATA:
+                assert db.scalar(select(func.count()).select_from(model)) == 0, model
+
+
+def test_master_data_of_another_organization_cannot_be_written(
+    app_database: Database, two_directories
+):
+    alpha, bravo = two_directories
+
+    with app_database.session(DbContext(organization_id=alpha.id)) as db:
+        for model in MASTER_DATA:
+            touched = db.execute(
+                update(model).where(model.organization_id == bravo.id).values(updated_at=func.now())
+            )
+            assert touched.rowcount == 0, model
+
+        db.add(Customer(organization_id=bravo.id, name="Planted", code="PLANTED"))
+        with pytest.raises(ProgrammingError, match="row-level security"):
+            db.flush()

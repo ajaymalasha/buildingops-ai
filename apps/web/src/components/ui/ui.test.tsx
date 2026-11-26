@@ -3,11 +3,17 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Button } from "./button";
+import { Blank, NameCell, StackedCell } from "./cells";
+import { Checkbox } from "./checkbox";
+import { ConfirmDialog } from "./confirm-dialog";
 import { DataTable, type Column } from "./data-table";
 import { Field } from "./field";
-import { Input } from "./input";
+import { FilterSelect } from "./filter-select";
+import { FormSection } from "./form-section";
+import { Input, UnitInput } from "./input";
 import { Pagination } from "./pagination";
 import { SearchInput } from "./search-input";
+import { Sheet, SheetBody, SheetClose, SheetContent, SheetFooter, SheetLoading } from "./sheet";
 
 type Person = { id: string; name: string; hours: number };
 
@@ -134,6 +140,20 @@ describe("DataTable", () => {
     const hours = screen.getByRole("columnheader", { name: "Hours" });
     expect(within(hours).queryByRole("button")).not.toBeInTheDocument();
   });
+
+  it("gives text that follows a right-aligned number more room, in the heading and the cells", () => {
+    table({
+      columns: [...columns, { id: "site", header: "Site", cell: () => "Calloway Tower" }],
+    });
+
+    expect(screen.getByRole("columnheader", { name: "Site" })).toHaveClass("pl-8");
+    for (const cell of screen.getAllByRole("cell", { name: "Calloway Tower" })) {
+      expect(cell).toHaveClass("pl-8");
+    }
+    // Not the number itself, and not a column that follows text.
+    expect(screen.getByRole("columnheader", { name: "Hours" })).not.toHaveClass("pl-8");
+    expect(screen.getByRole("columnheader", { name: /Name/ })).not.toHaveClass("pl-8");
+  });
 });
 
 describe("Pagination", () => {
@@ -190,6 +210,416 @@ describe("Field", () => {
     expect(input).toHaveAccessibleDescription("Enter a valid email address.");
     expect(screen.getByRole("alert")).toHaveTextContent("Enter a valid email address.");
     expect(screen.queryByText("Work address.")).not.toBeInTheDocument(); // the error replaces the hint
+  });
+
+  it("can keep its label for screen readers only, under a heading that already says it", () => {
+    render(
+      <Field id="notes" label="Notes" labelHidden hint="Anything the team should know.">
+        {(control) => <Input {...control} />}
+      </Field>,
+    );
+
+    expect(screen.getByText("Notes")).toHaveClass("sr-only");
+    expect(screen.getByLabelText("Notes")).toHaveAccessibleDescription(
+      "Anything the team should know.",
+    );
+  });
+});
+
+describe("UnitInput", () => {
+  it("shows the unit inside the input and reads it out after the hint", () => {
+    render(
+      <Field id="terms" label="Payment terms" hint="Days from invoice to payment due.">
+        {(control) => <UnitInput {...control} unit="days" defaultValue="30" />}
+      </Field>,
+    );
+
+    const input = screen.getByLabelText("Payment terms");
+    expect(input).toHaveValue("30");
+    expect(input).toHaveAccessibleDescription("Days from invoice to payment due. days");
+  });
+
+  it("describes the input by its unit alone when there is no hint", () => {
+    render(<UnitInput aria-label="Markup" unit="%" defaultValue="12.5" />);
+
+    expect(screen.getByLabelText("Markup")).toHaveAccessibleDescription("%");
+  });
+});
+
+describe("Checkbox", () => {
+  it("is a native checkbox, tied to its label and its description", async () => {
+    const onChange = vi.fn();
+    render(
+      <Checkbox
+        label="Supervisory role"
+        description="People in this role can be chosen as someone's supervisor."
+        onChange={onChange}
+      />,
+    );
+
+    const box = screen.getByRole("checkbox", { name: "Supervisory role" });
+    expect(box).toHaveAccessibleDescription(
+      "People in this role can be chosen as someone's supervisor.",
+    );
+    expect(box).not.toBeChecked();
+
+    await userEvent.click(screen.getByText("Supervisory role")); // the label is a target too
+    expect(box).toBeChecked();
+    expect(onChange).toHaveBeenCalledOnce();
+
+    box.focus();
+    await userEvent.keyboard(" ");
+    expect(box).not.toBeChecked();
+  });
+
+  it("shows the state it is given, and leaves changing it to its owner", async () => {
+    const onChange = vi.fn();
+    render(<Checkbox label="Calloway Tower" checked onChange={onChange} />);
+
+    const box = screen.getByRole("checkbox", { name: "Calloway Tower" });
+    expect(box).toBeChecked();
+    expect(box).not.toHaveAttribute("aria-describedby");
+
+    await userEvent.click(box);
+    expect(onChange).toHaveBeenCalledOnce();
+    expect(box).toBeChecked(); // still what its owner says
+  });
+
+  it("cannot be changed while disabled", async () => {
+    const onChange = vi.fn();
+    render(<Checkbox label="Primary building" disabled onChange={onChange} />);
+
+    await userEvent.click(screen.getByText("Primary building"));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("FilterSelect", () => {
+  const options = [
+    { value: "active", label: "Active" },
+    { value: "inactive", label: "Inactive" },
+  ];
+
+  it("offers no filter first, then the options, and reports what was chosen", async () => {
+    const onChange = vi.fn();
+    render(
+      <FilterSelect
+        label="Filter by status"
+        placeholder="Any status"
+        value="active"
+        options={options}
+        onChange={onChange}
+      />,
+    );
+
+    const select = screen.getByRole("combobox", { name: "Filter by status" });
+    expect(select).toHaveValue("active");
+    expect(within(select).getAllByRole("option")).toHaveLength(3);
+    expect(within(select).getAllByRole("option")[0]).toHaveTextContent("Any status");
+
+    await userEvent.selectOptions(select, "Inactive");
+    expect(onChange).toHaveBeenLastCalledWith("inactive");
+
+    // Choosing the first option reports an empty value, which takes the filter off.
+    await userEvent.selectOptions(select, "Any status");
+    expect(onChange).toHaveBeenLastCalledWith("");
+  });
+
+  it("shows no filter when none is applied", () => {
+    render(
+      <FilterSelect
+        label="Filter by status"
+        placeholder="Any status"
+        value={undefined}
+        options={options}
+        onChange={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole("combobox")).toHaveDisplayValue("Any status");
+  });
+});
+
+describe("table cells", () => {
+  it("identifies a row by its name, with the code people quote under it", () => {
+    render(<NameCell name="Calloway Tower" code="BLD-0001" />);
+
+    expect(screen.getByText("Calloway Tower")).toHaveAttribute("title", "Calloway Tower");
+    expect(screen.getByText("BLD-0001")).toHaveClass("font-mono");
+  });
+
+  it("puts a quieter detail under a value, and nothing when there is none", () => {
+    const { rerender } = render(
+      <StackedCell primary="New York, NY" secondary="410 Hollis Street" />,
+    );
+    expect(screen.getByText("410 Hollis Street")).toHaveClass("text-ink-muted");
+
+    rerender(<StackedCell primary="New York, NY" secondary={null} />);
+    expect(screen.getByText("New York, NY").parentElement?.children).toHaveLength(1);
+  });
+
+  it("says in words what a dash stands for", () => {
+    render(<Blank label="No phone number" />);
+
+    expect(screen.getByText("—")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByText("No phone number")).toHaveClass("sr-only");
+  });
+});
+
+describe("FormSection", () => {
+  it("groups its fields under a title that is announced with them", () => {
+    render(
+      <FormSection title="Address" description="Where invoices are sent.">
+        <Field id="city" label="City">
+          {(control) => <Input {...control} />}
+        </Field>
+      </FormSection>,
+    );
+
+    const group = screen.getByRole("group", { name: "Address" });
+    expect(within(group).getByLabelText("City")).toBeInTheDocument();
+    expect(within(group).getByText("Where invoices are sent.")).toBeInTheDocument();
+  });
+});
+
+describe("Sheet", () => {
+  function sheet(onOpenChange: (open: boolean) => void = () => undefined) {
+    return render(
+      <Sheet open onOpenChange={onOpenChange}>
+        <SheetContent title="New customer" description="A company you service buildings for.">
+          <form>
+            <SheetBody>
+              <Field id="name" label="Name">
+                {(control) => <Input {...control} />}
+              </Field>
+              <Field id="code" label="Code">
+                {(control) => <Input {...control} />}
+              </Field>
+            </SheetBody>
+            <SheetFooter>
+              <SheetClose asChild>
+                <Button variant="ghost">Cancel</Button>
+              </SheetClose>
+              <Button type="submit">Create customer</Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>,
+    );
+  }
+
+  it("is a dialog with a title and a description", () => {
+    sheet();
+
+    const dialog = screen.getByRole("dialog", { name: "New customer" });
+    expect(dialog).toHaveAccessibleDescription("A company you service buildings for.");
+    expect(within(dialog).getByRole("button", { name: "Create customer" })).toBeInTheDocument();
+  });
+
+  it("starts in the first field, not on the close button", () => {
+    sheet();
+
+    expect(screen.getByLabelText("Name")).toHaveFocus();
+  });
+
+  it("keeps focus inside while it is open", async () => {
+    sheet();
+
+    // Forward from the last control comes round to the first; it never reaches the page.
+    screen.getByRole("button", { name: "Create customer" }).focus();
+    await userEvent.tab();
+    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+    await userEvent.tab({ shift: true });
+    expect(screen.getByRole("button", { name: "Create customer" })).toHaveFocus();
+  });
+
+  it("closes from the close button, from Cancel and on Escape", async () => {
+    const onOpenChange = vi.fn();
+    sheet(onOpenChange);
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await userEvent.keyboard("{Escape}");
+
+    expect(onOpenChange).toHaveBeenCalledTimes(3);
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it("closes on a click on the page behind while nothing has been entered", async () => {
+    const onOpenChange = vi.fn();
+    sheet(onOpenChange);
+
+    await userEvent.click(document.querySelector(".animate-overlay-in")!);
+
+    expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
+  it("stays open on a click behind once something has been typed, so a slip loses nothing", async () => {
+    const onOpenChange = vi.fn();
+    sheet(onOpenChange);
+
+    await userEvent.type(screen.getByLabelText("Name"), "Harborline Offices");
+    await userEvent.click(document.querySelector(".animate-overlay-in")!);
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    // Leaving on purpose still works.
+    await userEvent.keyboard("{Escape}");
+    expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
+  it("renders nothing while closed", () => {
+    render(
+      <Sheet open={false}>
+        <SheetContent title="New customer">
+          <SheetBody>Fields</SheetBody>
+        </SheetContent>
+      </Sheet>,
+    );
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("has a labelled placeholder for while a form's choices load", () => {
+    render(
+      <Sheet open>
+        <SheetContent title="New building">
+          <SheetLoading fields={3} />
+        </SheetContent>
+      </Sheet>,
+    );
+
+    expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument();
+    // With no field to start in, focus falls back to the first control: the close button.
+    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+  });
+
+  it("moves focus to the first field when the form arrives after loading", () => {
+    const drawer = (loaded: boolean) => (
+      <Sheet open>
+        <SheetContent title="New building">
+          {loaded ? (
+            <SheetBody>
+              <Field id="customer" label="Customer">
+                {(control) => <Input {...control} />}
+              </Field>
+            </SheetBody>
+          ) : (
+            <SheetLoading />
+          )}
+        </SheetContent>
+      </Sheet>
+    );
+    const { rerender } = render(drawer(false));
+    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+
+    rerender(drawer(true));
+
+    expect(screen.getByLabelText("Customer")).toHaveFocus();
+  });
+
+  it("leaves focus alone when loading ends because the drawer was closed", () => {
+    const { rerender } = render(
+      <Sheet open>
+        <SheetContent title="New building">
+          <SheetLoading />
+        </SheetContent>
+      </Sheet>,
+    );
+
+    rerender(
+      <Sheet open={false}>
+        <SheetContent title="New building">
+          <SheetLoading />
+        </SheetContent>
+      </Sheet>,
+    );
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});
+
+describe("ConfirmDialog", () => {
+  const conflict = {
+    type: "about:blank",
+    title: "Conflict",
+    status: 409,
+    code: "conflict",
+    detail:
+      "Calloway Property Group still has 4 buildings. Before archiving, archive its buildings or move them to another customer.",
+  };
+
+  function confirmDialog(props: Partial<React.ComponentProps<typeof ConfirmDialog>> = {}) {
+    const handlers = { onConfirm: vi.fn(), onOpenChange: vi.fn() };
+    render(
+      <ConfirmDialog
+        open
+        title="Archive Calloway Property Group?"
+        description="It leaves the customer list. Archiving cannot be undone from the app."
+        confirmLabel="Archive customer"
+        tone="danger"
+        {...handlers}
+        {...props}
+      />,
+    );
+    return handlers;
+  }
+
+  it("asks the question, says what will happen and starts on the safe answer", () => {
+    confirmDialog();
+
+    const dialog = screen.getByRole("alertdialog", { name: "Archive Calloway Property Group?" });
+    expect(dialog).toHaveAccessibleDescription(
+      "It leaves the customer list. Archiving cannot be undone from the app.",
+    );
+    expect(within(dialog).getByRole("button", { name: "Cancel" })).toHaveFocus();
+  });
+
+  it("leaves closing to its owner, so the outcome can be shown where the question was", async () => {
+    const { onConfirm, onOpenChange } = confirmDialog();
+
+    await userEvent.click(screen.getByRole("button", { name: "Archive customer" }));
+
+    expect(onConfirm).toHaveBeenCalledOnce();
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+  });
+
+  it("blocks a second confirmation while the first is in flight", async () => {
+    const { onConfirm } = confirmDialog({ loading: true });
+
+    const confirm = screen.getByRole("button", { name: "Archive customer" });
+    expect(confirm).toBeDisabled();
+    await userEvent.click(confirm);
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("shows a refusal in the API's words, with nothing left to do but close", async () => {
+    const { onOpenChange } = confirmDialog({ error: conflict });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(conflict.detail);
+    expect(screen.queryByRole("button", { name: "Archive customer" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
+  it("lets a failure that is not a refusal be tried again", async () => {
+    const { onConfirm } = confirmDialog({ error: new TypeError("fetch failed") });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
+    await userEvent.click(screen.getByRole("button", { name: "Archive customer" }));
+    expect(onConfirm).toHaveBeenCalledOnce();
+  });
+
+  it("closes on Cancel and on Escape", async () => {
+    const { onOpenChange } = confirmDialog();
+
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await userEvent.keyboard("{Escape}");
+
+    expect(onOpenChange).toHaveBeenCalledTimes(2);
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
   });
 });
 
@@ -279,5 +709,24 @@ describe("DropdownMenu", () => {
     const link = screen.getByRole("menuitem", { name: "Account" });
     expect(link).toHaveAttribute("href", "/settings/account");
     expect(screen.getByRole("menuitem", { name: "Meridian" })).toBeInTheDocument();
+  });
+
+  it("puts a row's actions behind a button named for the row", async () => {
+    const { DropdownMenuItem, RowActions } = await import("./dropdown-menu");
+    const onEdit = vi.fn();
+    render(
+      <RowActions label="Actions for Calloway Tower">
+        <DropdownMenuItem onSelect={onEdit}>Edit building</DropdownMenuItem>
+        <DropdownMenuItem tone="danger">Archive building</DropdownMenuItem>
+      </RowActions>,
+    );
+
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Actions for Calloway Tower" }));
+    expect(screen.getAllByRole("menuitem")).toHaveLength(2);
+
+    await userEvent.click(screen.getByRole("menuitem", { name: "Edit building" }));
+    expect(onEdit).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument(); // choosing closes it
   });
 });

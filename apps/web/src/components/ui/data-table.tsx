@@ -79,6 +79,12 @@ export function DataTable<Row>({
     return descending ? undefined : `-${key}`;
   }
 
+  // Text that starts right after a right-aligned number gets more room on its left, so the
+  // two do not read as one value.
+  const gapBefore = columns.map((column, index) =>
+    column.align !== "end" && columns[index - 1]?.align === "end" ? "pl-8" : undefined,
+  );
+
   return (
     <div className="overflow-x-auto">
       <table
@@ -88,7 +94,7 @@ export function DataTable<Row>({
         <caption className="sr-only">{caption}</caption>
         <thead>
           <tr className="border-b border-line bg-canvas/60">
-            {columns.map((column) => {
+            {columns.map((column, columnIndex) => {
               const active = column.sortKey !== undefined && column.sortKey === sortKey;
               return (
                 <th
@@ -98,6 +104,7 @@ export function DataTable<Row>({
                   className={cn(
                     "h-9 px-4 text-xs font-medium whitespace-nowrap text-ink-muted",
                     column.align === "end" ? "text-right" : "text-left",
+                    gapBefore[columnIndex],
                     column.width,
                   )}
                 >
@@ -134,7 +141,7 @@ export function DataTable<Row>({
             ? Array.from({ length: skeletonRows }, (_, index) => (
                 <tr key={index}>
                   {columns.map((column, columnIndex) => (
-                    <td key={column.id} className="h-11 px-4">
+                    <td key={column.id} className={cn("h-11 px-4", gapBefore[columnIndex])}>
                       <Skeleton
                         className={cn(
                           "h-3.5",
@@ -148,12 +155,13 @@ export function DataTable<Row>({
               ))
             : rows?.map((row) => (
                 <tr key={rowKey(row)} className="transition-colors hover:bg-canvas/50">
-                  {columns.map((column) => (
+                  {columns.map((column, columnIndex) => (
                     <td
                       key={column.id}
                       className={cn(
                         "h-11 px-4 py-2 align-middle text-ink",
                         column.align === "end" && "text-right tabular-nums",
+                        gapBefore[columnIndex],
                       )}
                     >
                       {column.cell(row)}

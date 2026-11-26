@@ -1,7 +1,7 @@
 "use client";
 
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
-import { Ellipsis, Plus, UserRoundX, Users } from "lucide-react";
+import { Plus, UserRoundX, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -10,13 +10,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable, type Column } from "@/components/ui/data-table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem, DropdownMenuSeparator, RowActions } from "@/components/ui/dropdown-menu";
 import { Select } from "@/components/ui/input";
 import { PageHeader, Panel } from "@/components/ui/page";
 import { Pagination } from "@/components/ui/pagination";
@@ -144,35 +138,27 @@ function MembersList() {
       cell: (member) => {
         const isSelf = member.user_id === me.user.id;
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              aria-label={`Actions for ${member.full_name}`}
-              className="inline-flex size-7 cursor-pointer items-center justify-center rounded-sm text-ink-subtle hover:bg-sunken hover:text-ink data-[state=open]:bg-sunken"
-            >
-              <Ellipsis className="size-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => setEditing(member)}>
-                Edit role and title
-              </DropdownMenuItem>
-              {isSelf ? null : (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    tone={member.status === "active" ? "danger" : "default"}
-                    onSelect={() =>
-                      setAccess.mutate({
-                        params: { path: { member_id: member.id } },
-                        body: { status: member.status === "active" ? "suspended" : "active" },
-                      })
-                    }
-                  >
-                    {member.status === "active" ? "Suspend access" : "Restore access"}
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <RowActions label={`Actions for ${member.full_name}`}>
+            <DropdownMenuItem onSelect={() => setEditing(member)}>
+              Edit role and title
+            </DropdownMenuItem>
+            {isSelf ? null : (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  tone={member.status === "active" ? "danger" : "default"}
+                  onSelect={() =>
+                    setAccess.mutate({
+                      params: { path: { member_id: member.id } },
+                      body: { status: member.status === "active" ? "suspended" : "active" },
+                    })
+                  }
+                >
+                  {member.status === "active" ? "Suspend access" : "Restore access"}
+                </DropdownMenuItem>
+              </>
+            )}
+          </RowActions>
         );
       },
     });

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Ellipsis } from "lucide-react";
 import { DropdownMenu as MenuPrimitive } from "radix-ui";
 
 import { cn } from "@/lib/utils";
@@ -78,5 +78,27 @@ export function DropdownMenuSeparator({
 }: React.ComponentProps<typeof MenuPrimitive.Separator>) {
   return (
     <MenuPrimitive.Separator className={cn("-mx-1 my-1 h-px bg-line", className)} {...props} />
+  );
+}
+
+type RowActionsProps = {
+  /** Names the row for people who cannot see which one the button sits in. */
+  label: string;
+  /** The menu's items. */
+  children: React.ReactNode;
+};
+
+/** The menu at the end of a table row, behind a "more" button. */
+export function RowActions({ label, children }: RowActionsProps) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={label}
+        className="inline-flex size-7 cursor-pointer items-center justify-center rounded-sm text-ink-subtle hover:bg-sunken hover:text-ink data-[state=open]:bg-sunken"
+      >
+        <Ellipsis className="size-4" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">{children}</DropdownMenuContent>
+    </DropdownMenu>
   );
 }

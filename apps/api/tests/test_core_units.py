@@ -18,6 +18,14 @@ from buildingops.core.permissions import (
     Role,
     permissions_for,
 )
+from buildingops.core.schemas import (
+    CountryCode,
+    OptionalCode,
+    OptionalEmail,
+    OptionalText40,
+    RequestModel,
+    two_decimal_places,
+)
 from buildingops.core.security import (
     PasswordService,
     generate_session_token,
@@ -103,6 +111,44 @@ def test_only_company_admins_manage_members_within_an_organization():
     assert managers == {Role.COMPANY_ADMIN}
 
 
+def test_only_managers_change_master_data_or_see_pay_and_contracts():
+    managers = {Role.COMPANY_ADMIN, Role.OPERATIONS_MANAGER}
+    reserved = {
+        Permission.CUSTOMERS_WRITE,
+        Permission.BUILDINGS_WRITE,
+        Permission.VENDORS_WRITE,
+        Permission.EMPLOYEES_WRITE,
+        Permission.EMPLOYEES_READ_COMPENSATION,
+        Permission.CONTRACTS_READ,
+        Permission.CONTRACTS_WRITE,
+    }
+
+    for role in MEMBERSHIP_ROLES:
+        held = reserved & ROLE_PERMISSIONS[role]
+        assert held == (reserved if role in managers else set()), role
+
+
+def test_supervisors_read_the_directory_and_lower_roles_do_not():
+    directory = {
+        Permission.CUSTOMERS_READ,
+        Permission.BUILDINGS_READ,
+        Permission.VENDORS_READ,
+        Permission.EMPLOYEES_READ,
+    }
+
+    assert directory <= ROLE_PERMISSIONS[Role.SUPERVISOR]
+    for role in (Role.EMPLOYEE, Role.CUSTOMER, Role.VENDOR):
+        assert not directory & ROLE_PERMISSIONS[role]
+
+
+def test_whoever_reads_the_audit_log_may_also_see_pay_rates():
+    """The audit log records a changed pay rate in full, so reading it reveals the rate."""
+    for role in MEMBERSHIP_ROLES:
+        granted = ROLE_PERMISSIONS[role]
+        if Permission.AUDIT_READ in granted:
+            assert Permission.EMPLOYEES_READ_COMPENSATION in granted, role
+
+
 def test_platform_permissions_never_come_from_a_membership_role():
     for role in MEMBERSHIP_ROLES:
         assert Permission.PLATFORM_ORGANIZATIONS not in permissions_for(
@@ -134,6 +180,48 @@ def test_sorting_is_limited_to_whitelisted_fields():
 
     with pytest.raises(ValidationFailedError):
         apply_sort(statement, "secret", allowed=allowed, default="name", tiebreaker=column("id"))
+
+
+def test_a_sort_field_can_stand_for_several_columns():
+    allowed = {"name": (column("last_name"), column("first_name"))}
+
+    ordered = apply_sort(
+        select(column("id")), "-name", allowed=allowed, default="name", tiebreaker=column("id")
+    )
+
+    assert "ORDER BY last_name DESC NULLS LAST, first_name DESC NULLS LAST, id" in str(ordered)
+
+
+# --- request field types -----------------------------------------------------------------
+
+
+class _Form(RequestModel):
+    code: OptionalCode = None
+    phone: OptionalText40 = None
+    email: OptionalEmail = None
+    country: CountryCode = "US"
+
+
+def test_an_optional_input_left_empty_means_no_value():
+    form = _Form(code="  ", phone="", email=" ")
+
+    assert (form.code, form.phone, form.email) == (None, None, None)
+
+
+def test_codes_are_trimmed_and_stored_in_upper_case():
+    assert _Form(code=" bld-7 ").code == "BLD-7"
+
+
+@pytest.mark.parametrize("country", ["USA", "U", "U1", "üs"])
+def test_a_country_is_two_letters(country: str):
+    assert _Form(country="ca").country == "CA"
+    with pytest.raises(ValidationError):
+        _Form(country=country)
+
+
+def test_amounts_keep_two_decimal_places():
+    assert str(two_decimal_places(Decimal("18.5"))) == "18.50"
+    assert str(two_decimal_places(Decimal("18"))) == "18.00"
 
 
 # --- audit helpers -----------------------------------------------------------------------

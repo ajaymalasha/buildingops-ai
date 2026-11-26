@@ -9,6 +9,9 @@ export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
 
+/** The dimmed backdrop behind anything modal: dialogs, drawers, confirmations. */
+export const overlayClasses = "fixed inset-0 z-50 animate-overlay-in bg-ink/45";
+
 type DialogContentProps = {
   title: string;
   description?: string;
@@ -26,7 +29,7 @@ export function DialogContent({
 }: DialogContentProps) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 animate-overlay-in bg-ink/45" />
+      <DialogPrimitive.Overlay className={overlayClasses} />
       <DialogPrimitive.Content
         // Without a description, tell Radix there is deliberately nothing to point at.
         {...(description ? {} : { "aria-describedby": undefined })}

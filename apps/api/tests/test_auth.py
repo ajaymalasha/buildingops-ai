@@ -6,7 +6,7 @@ from sqlalchemy import select, update
 
 from buildingops.core.db import Database
 from buildingops.core.models import utcnow
-from buildingops.core.permissions import Role
+from buildingops.core.permissions import ROLE_PERMISSIONS, Role
 from buildingops.core.security import hash_session_token
 from buildingops.main import create_app
 from buildingops.modules.identity.models import AuthSession, Membership, MembershipStatus, User
@@ -32,7 +32,7 @@ def test_login_returns_a_token_and_the_callers_profile(client: TestClient, facto
     assert body["me"]["user"]["email"] == user.email
     assert body["me"]["organization"]["id"] == str(organization.id)
     assert body["me"]["role"] == "operations_manager"
-    assert body["me"]["permissions"] == ["audit:read", "members:read", "organization:read"]
+    assert body["me"]["permissions"] == sorted(ROLE_PERMISSIONS[Role.OPERATIONS_MANAGER])
     assert [m["organization"]["id"] for m in body["me"]["memberships"]] == [str(organization.id)]
 
     me = client.get(ME, headers={"Authorization": f"Bearer {body['session_token']}"})

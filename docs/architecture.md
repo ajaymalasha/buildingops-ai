@@ -98,6 +98,31 @@ See [decision 0002](decisions/0002-authentication.md).
   audit table is append-only for every role, enforced by triggers.
 - Logs are structured (JSON in production) and carry the request id, user and organization.
 
+## Master data
+
+Customers, buildings, vendors, job roles, employees with their building assignments, and
+contracts are the shared records that later modules refer to. They follow the conventions
+above and add a few of their own.
+
+- **Codes.** Customers, buildings, vendors, employees and contracts carry a code people
+  can quote (`CUS-0001`). A code can be typed in, and is then kept in upper case.
+  Otherwise it is the next value of a per-organization counter (`organization_sequences`),
+  taken with a single upsert inside the request's transaction: two requests never get the
+  same number, and a request that fails gives its number back.
+- **Archiving.** `DELETE` archives. The row gets a `deleted_at`, disappears from lists and
+  lookups, and frees its code. It stays readable through the records that refer to it. An
+  archive is refused with a 409 while live records depend on the row: a customer with
+  buildings, a job role with employees. Contracts are never archived. They end by status.
+- **Staying live.** A request that makes one record depend on another (a building on a
+  customer, an employee on a supervisor) reads that row with a key-share lock, and an
+  archive locks its row for update before it looks for dependants. The two conflict, so
+  neither can slip past the other between a check and a commit.
+- **Pay rates.** Hourly rates on employees and job roles are returned, and accepted, only
+  for callers with `employees:read_compensation`. Everyone else gets `null`.
+- **Shared mechanics.** `core/crud.py` holds what every one of these services does the same
+  way: lookups inside the organization, code assignment, applying a PATCH, archiving, and
+  the audit entry for each change. Validation and read models stay in each module.
+
 ## Web app
 
 - The App Router with Cache Components: each route has a prerendered static shell, and the
@@ -108,6 +133,17 @@ See [decision 0002](decisions/0002-authentication.md).
 - List state (search, filters, sort, page) lives in the URL.
 - The design system is a small set of owned components in `src/components/ui`, built on
   Radix primitives and Tailwind tokens defined in `src/app/globals.css`.
+- Every kind of master data has a list page and one form that both adds and edits. A form
+  too long for a dialog opens in a drawer beside the list. The browser checks only what it
+  can know (something was entered, a number looks like a number). Everything else is the
+  API's decision, and its answer is shown on the field it concerns.
+- Archiving asks first, in a dialog that says what archiving means. When the API refuses
+  because other records depend on the row, its explanation is shown in that dialog.
+- Amounts stay decimal strings from the API to the screen and back. They are formatted for
+  display and never become floating-point numbers.
+- What a role may not see is left out, not greyed out: without
+  `employees:read_compensation` there is no pay column, and without a write permission
+  there are no buttons that change anything. The API enforces the same rules on its own.
 
 ## Testing
 
@@ -115,8 +151,9 @@ See [decision 0002](decisions/0002-authentication.md).
 | --- | --- | --- |
 | API | Endpoints, permissions, tenancy, sessions, audit, against real PostgreSQL as the app role | `apps/api/tests` |
 | Schema invariants | Row-level security and model/migration drift; every migration runs down and up | `apps/api/tests/test_schema_invariants.py` |
-| Web unit and component | Proxy route, session handling, formatting, shared components | `apps/web/src/**/*.test.ts(x)` |
-| End to end | Sign-in, each role, tenant isolation, in a real browser against the real stack | `apps/web/e2e` |
+| Database rules | CHECK constraints, partial unique indexes and tenant-safe references, written to as the owner role | `apps/api/tests/test_master_data_constraints.py` |
+| Web unit and component | Proxy route, session handling, formatting, shared components, what each form checks and sends | `apps/web/src/**/*.test.ts(x)` |
+| End to end | Sign-in, each role, tenant isolation, and keeping master data, in a real browser against the real stack | `apps/web/e2e` |
 
 ## Planned (not built yet)
 

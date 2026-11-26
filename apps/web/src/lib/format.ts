@@ -14,6 +14,41 @@ export function formatDate(iso: string, timeZone?: string): string {
   return new Intl.DateTimeFormat(LOCALE, { dateStyle: "medium", timeZone }).format(new Date(iso));
 }
 
+/**
+ * "Mar 1, 2026" for a calendar date (`2026-03-01`): a contract's start, a hire date. A
+ * date like this is the same day everywhere, so no time zone is applied to it.
+ */
+export function formatDay(date: string): string {
+  return new Intl.DateTimeFormat(LOCALE, { dateStyle: "medium", timeZone: "UTC" }).format(
+    new Date(`${date}T00:00:00Z`),
+  );
+}
+
+/** "412,000" */
+export function formatNumber(value: number): string {
+  return new Intl.NumberFormat(LOCALE).format(value);
+}
+
+const DECIMAL = /^-?\d+(\.\d+)?$/;
+
+// The API sends amounts as decimal strings ("18400.00"). Intl formats such a string digit
+// for digit, so an amount is never turned into a floating-point number on its way to the
+// screen. Anything that is not a decimal is shown as it came.
+function formatDecimal(value: string, options: Intl.NumberFormatOptions): string {
+  if (!DECIMAL.test(value)) return value;
+  return new Intl.NumberFormat(LOCALE, options).format(value as Intl.StringNumericLiteral);
+}
+
+/** "$18,400.00" from "18400.00" and "USD". Display only: amounts stay strings elsewhere. */
+export function formatMoney(value: string, currency: string): string {
+  return formatDecimal(value, { style: "currency", currency });
+}
+
+/** "12.5%" from "12.50": a rate as people say it, without trailing zeros. */
+export function formatPercent(value: string): string {
+  return formatDecimal(value, { style: "unit", unit: "percent", maximumFractionDigits: 2 });
+}
+
 // Each unit is used up to the point where rounding would produce a whole one of the next
 // unit, so this never says "60 minutes ago" or "12 months ago".
 const RELATIVE_STEPS: [limit: number, divisor: number, unit: Intl.RelativeTimeFormatUnit][] = [

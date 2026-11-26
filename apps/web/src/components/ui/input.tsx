@@ -1,4 +1,5 @@
 import { ChevronDown } from "lucide-react";
+import { useId } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -7,6 +8,31 @@ const controlClasses =
 
 export function Input({ className, ...props }: React.ComponentProps<"input">) {
   return <input className={cn(controlClasses, "h-9 px-3", className)} {...props} />;
+}
+
+type UnitInputProps = React.ComponentProps<"input"> & {
+  /** What the number counts, shown inside the input after the value: "USD", "%", "days". */
+  unit: string;
+};
+
+/** An input for an amount, with its unit shown inside it and read out after the value. */
+export function UnitInput({ unit, className, ...props }: UnitInputProps) {
+  const unitId = useId();
+  return (
+    <div className="relative">
+      <input
+        className={cn(controlClasses, "h-9 pr-14 pl-3 tabular-nums", className)}
+        {...props}
+        aria-describedby={[props["aria-describedby"], unitId].filter(Boolean).join(" ")}
+      />
+      <span
+        id={unitId}
+        className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[13px] text-ink-subtle"
+      >
+        {unit}
+      </span>
+    </div>
+  );
 }
 
 export function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
