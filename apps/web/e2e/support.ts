@@ -122,14 +122,37 @@ export function cents(amount: string): number {
  */
 export const FROM_THIS_SITE = { origin: "http://localhost:3100" };
 
+type ShotOptions = {
+  /** Take in the whole page, however far it scrolls, rather than what is in the window. */
+  wholePage?: boolean;
+  /** The picture is of a page still waiting for something, so do not wait for it. */
+  whileLoading?: boolean;
+};
+
 /**
  * Save a review screenshot when E2E_SCREENSHOT_DIR is set. Ordinary runs write nothing.
  * The screenshots are for people reviewing a change; they are never committed.
  */
-export async function shot(page: Page, name: string): Promise<void> {
+export async function shot(
+  page: Page,
+  name: string,
+  { wholePage = false, whileLoading = false }: ShotOptions = {},
+): Promise<void> {
   const directory = process.env.E2E_SCREENSHOT_DIR;
   if (!directory) return;
-  await page.waitForLoadState("networkidle");
-  // Animations are run to their end first, so a drawer is never caught half way in.
-  await page.screenshot({ path: path.join(directory, `${name}.png`), animations: "disabled" });
+  if (!whileLoading) await page.waitForLoadState("networkidle");
+  const file = path.join(directory, `${name}.png`);
+  const window = page.viewportSize();
+  const height = await page.evaluate(() => document.documentElement.scrollHeight);
+  if (!wholePage || !window || height <= window.height) {
+    // Animations are run to their end first, so a drawer is never caught half way in.
+    await page.screenshot({ path: file, animations: "disabled" });
+    return;
+  }
+  // The window is made as tall as the page for the picture, rather than the picture
+  // stitched together from scrolls: the sidebar and the header are fixed to the window,
+  // and would otherwise be drawn once at the top and missing below.
+  await page.setViewportSize({ width: window.width, height });
+  await page.screenshot({ path: file, animations: "disabled" });
+  await page.setViewportSize(window);
 }

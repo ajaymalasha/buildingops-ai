@@ -54,6 +54,8 @@ class Permission(StrEnum):
     EXPENSES_APPROVE = "expenses:approve"
     # Invoices and the payments received against them.
     INVOICES_READ = "invoices:read"
+    # What the business costs and earns, added up across every building and contract.
+    DASHBOARD_READ = "dashboard:read"
     PLATFORM_ORGANIZATIONS = "platform:organizations"
 
 
@@ -85,10 +87,12 @@ _OPERATIONS_RUN: frozenset[Permission] = frozenset(
         _P.EXPENSES_WRITE,
     }
 )
-# Approving spending and seeing what customers are billed stay with managers.
+# Approving spending and seeing what customers are billed stay with managers. So does the
+# dashboard, which adds up what labor costs and what each contract earns.
 _OPERATIONS_MANAGE: frozenset[Permission] = _OPERATIONS_RUN | {
     _P.EXPENSES_APPROVE,
     _P.INVOICES_READ,
+    _P.DASHBOARD_READ,
 }
 
 ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {

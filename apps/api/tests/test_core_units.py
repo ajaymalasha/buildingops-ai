@@ -183,6 +183,30 @@ def test_whoever_sees_invoices_may_also_see_pay_rates_and_contracts():
             assert {Permission.EMPLOYEES_READ_COMPENSATION, Permission.CONTRACTS_READ} <= granted
 
 
+def test_the_dashboard_is_for_managers_who_may_see_everything_it_adds_up():
+    """The dashboard shows what labor costs, what each contract earns and what customers
+    owe, and its figures link to the lists they are added up from."""
+    behind_the_figures = {
+        Permission.EMPLOYEES_READ_COMPENSATION,
+        Permission.CONTRACTS_READ,
+        Permission.INVOICES_READ,
+        Permission.EXPENSES_READ,
+        Permission.TIMESHEETS_READ,
+        Permission.WORK_ORDERS_READ,
+        Permission.CUSTOMERS_READ,
+        Permission.BUILDINGS_READ,
+        Permission.EMPLOYEES_READ,
+        Permission.VENDORS_READ,
+    }
+    readers = {
+        role for role in MEMBERSHIP_ROLES if Permission.DASHBOARD_READ in ROLE_PERMISSIONS[role]
+    }
+
+    assert readers == {Role.COMPANY_ADMIN, Role.OPERATIONS_MANAGER}
+    for role in readers:
+        assert behind_the_figures <= ROLE_PERMISSIONS[role], role
+
+
 def test_platform_permissions_never_come_from_a_membership_role():
     for role in MEMBERSHIP_ROLES:
         assert Permission.PLATFORM_ORGANIZATIONS not in permissions_for(

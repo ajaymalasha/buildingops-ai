@@ -49,3 +49,17 @@ export type InvoiceLine = Schemas["InvoiceLineRead"];
 export type InvoiceStatus = Schemas["InvoiceStatus"];
 export type Payment = Schemas["PaymentRead"];
 export type PaymentMethod = Schemas["PaymentMethod"];
+
+export type DashboardSummary = Schemas["DashboardSummary"];
+export type DashboardTrends = Schemas["DashboardTrends"];
+export type DashboardContracts = Schemas["DashboardContracts"];
+export type DashboardBuildings = Schemas["DashboardBuildings"];
+export type DashboardWorkOrders = Schemas["DashboardWorkOrders"];
+/** An amount for a period, beside the same amount for the period before it. */
+export type MoneyFigure = Schemas["MoneyFigure"];
+export type MonthTrend = Schemas["MonthTrend"];
+/** Revenue, costs and margin of one contract, or of several together. */
+export type ProfitLine = Schemas["ProfitLine"];
+export type ContractProfit = Schemas["ContractProfit"];
+export type BuildingCost = Schemas["BuildingCost"];
+export type CostShare = Schemas["CostShare"];

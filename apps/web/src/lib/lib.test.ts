@@ -8,15 +8,20 @@ import {
   generatePassword,
 } from "@/features/members/member-form-schema";
 import { fieldErrors, isProblem, problemMessage } from "@/lib/api/problem";
+import { axisTicks, percentOf, toNumber } from "@/lib/chart";
 import {
   addDays,
   daysBetween,
+  endOfMonth,
   fromDateTimeInput,
   instantInZone,
   isCalendarDate,
   nextDay,
   startOfDayInZone,
+  startOfMonth,
+  startOfQuarter,
   startOfWeek,
+  startOfYear,
   toDateTimeInput,
   todayInZone,
   weekDays,
@@ -60,10 +65,15 @@ import {
   formatHours,
   formatLongDay,
   formatMoney,
+  formatMoneyCompact,
+  formatMoneyTick,
+  formatMonth,
   formatMonthDay,
+  formatMonthYear,
   formatNumber,
   formatOverdue,
   formatPercent,
+  formatPercentPoint,
   formatPeriod,
   formatQuantity,
   formatRelative,
@@ -71,6 +81,7 @@ import {
   formatWeekday,
   humanize,
   initials,
+  moneyParts,
 } from "@/lib/format";
 import { breadcrumbsFor, isActivePath, visibleNavigation } from "@/lib/navigation";
 import { groupedTimeZones, timeZoneLabel } from "@/lib/regional";
@@ -186,6 +197,40 @@ describe("weeks", () => {
       "2026-03-08",
     ]);
     expect(startOfWeek(addDays("2026-03-02", 7))).toBe("2026-03-09");
+  });
+});
+
+describe("months, quarters and years", () => {
+  it("finds the first day of a month, and of the months around it", () => {
+    expect(startOfMonth("2026-11-26")).toBe("2026-11-01");
+    expect(startOfMonth("2026-11-01")).toBe("2026-11-01");
+    expect(startOfMonth("2026-11-26", -1)).toBe("2026-10-01");
+    expect(startOfMonth("2026-11-26", -11)).toBe("2025-12-01");
+    expect(startOfMonth("2026-11-26", 2)).toBe("2027-01-01");
+    // From the 31st, the month before is still the month before, however short it is.
+    expect(startOfMonth("2026-03-31", -1)).toBe("2026-02-01");
+    expect(startOfMonth("2026-01-15", -1)).toBe("2025-12-01");
+  });
+
+  it("finds the last day of a month, in a leap year too", () => {
+    expect(endOfMonth("2026-10-01")).toBe("2026-10-31");
+    expect(endOfMonth("2026-02-10")).toBe("2026-02-28");
+    expect(endOfMonth("2028-02-10")).toBe("2028-02-29");
+    expect(endOfMonth("2026-12-31")).toBe("2026-12-31");
+  });
+
+  it("starts a quarter in January, April, July or October", () => {
+    expect(startOfQuarter("2026-01-01")).toBe("2026-01-01");
+    expect(startOfQuarter("2026-03-31")).toBe("2026-01-01");
+    expect(startOfQuarter("2026-04-01")).toBe("2026-04-01");
+    expect(startOfQuarter("2026-08-15")).toBe("2026-07-01");
+    expect(startOfQuarter("2026-11-26")).toBe("2026-10-01");
+    expect(startOfQuarter("2026-12-31")).toBe("2026-10-01");
+  });
+
+  it("starts a year on the first of January", () => {
+    expect(startOfYear("2026-11-26")).toBe("2026-01-01");
+    expect(startOfYear("2028-02-29")).toBe("2028-01-01");
   });
 });
 
@@ -423,6 +468,72 @@ describe("formatting", () => {
     expect(formatMoney("", "USD")).toBe("");
     expect(formatMoney("n/a", "USD")).toBe("n/a");
     expect(formatPercent("twelve")).toBe("twelve");
+    expect(formatMoneyCompact("n/a", "USD")).toBe("n/a");
+    expect(moneyParts("n/a", "USD")).toEqual({ whole: "n/a", cents: "" });
+  });
+
+  it("writes an amount below zero with a minus sign, not a hyphen", () => {
+    // U+2212. A hyphen is easy to miss before a currency symbol, and may not be read out.
+    expect(formatMoney("-2844.21", "USD")).toBe("\u2212$2,844.21");
+    expect(formatMoney("-0.01", "USD")).toBe("\u2212$0.01");
+    expect(formatPercentPoint("-21.5")).toBe("\u221221.5%");
+    expect(formatMoneyCompact("-163401.25", "USD")).toBe("\u2212$163.4K");
+    expect(formatMoneyTick(-50000, "USD")).toBe("\u2212$50K");
+    expect(formatMoney("2844.21", "USD")).not.toMatch(/[-\u2212]/);
+  });
+
+  it("splits an amount where its cents begin, so they can be set smaller", () => {
+    expect(moneyParts("351024.60", "USD")).toEqual({ whole: "$351,024", cents: ".60" });
+    expect(moneyParts("0.00", "USD")).toEqual({ whole: "$0", cents: ".00" });
+    expect(moneyParts("-203280.74", "USD")).toEqual({ whole: "\u2212$203,280", cents: ".74" });
+    // The two parts are the amount, digit for digit.
+    const { whole, cents } = moneyParts("9007199254740993.07", "USD");
+    expect(whole + cents).toBe(formatMoney("9007199254740993.07", "USD"));
+    // A currency without cents has nothing to set smaller.
+    expect(moneyParts("22900", "JPY")).toEqual({ whole: "¥22,900", cents: "" });
+  });
+
+  it("abbreviates an amount for a chart, to one place", () => {
+    expect(formatMoneyCompact("1234567.89", "USD")).toBe("$1.2M");
+    expect(formatMoneyCompact("48321.50", "USD")).toBe("$48.3K");
+    expect(formatMoneyCompact("351024.60", "USD")).toBe("$351.0K");
+    expect(formatMoneyCompact("1000.00", "USD")).toBe("$1.0K");
+    expect(formatMoneyCompact("12345678901.23", "USD")).toBe("$12.3B");
+    // Rounded half up at the place it is cut, into the next unit if it comes to that.
+    expect(formatMoneyCompact("999949.99", "USD")).toBe("$999.9K");
+    expect(formatMoneyCompact("999950.00", "USD")).toBe("$1.0M");
+    expect(formatMoneyCompact("1234567.89", "EUR")).toBe("€1.2M");
+    // Below a thousand there is nothing to abbreviate.
+    expect(formatMoneyCompact("950.25", "USD")).toBe("$950");
+    expect(formatMoneyCompact("0.00", "USD")).toBe("$0");
+    expect(formatMoneyCompact("999.99", "USD")).toBe("$1,000");
+  });
+
+  it("marks a money axis as briefly as it can", () => {
+    expect(formatMoneyTick(0, "USD")).toBe("$0");
+    expect(formatMoneyTick(100_000, "USD")).toBe("$100K");
+    expect(formatMoneyTick(250_000, "USD")).toBe("$250K");
+    expect(formatMoneyTick(1_000_000, "USD")).toBe("$1M");
+    expect(formatMoneyTick(1_500_000, "USD")).toBe("$1.5M");
+    // A mark is written in full: an axis must not say $1.3M where it means $1.25M.
+    expect(formatMoneyTick(1_250_000, "USD")).toBe("$1.25M");
+    expect(formatMoneyTick(2_500, "USD")).toBe("$2.5K");
+    expect(formatMoneyTick(500, "USD")).toBe("$500");
+  });
+
+  it("shows a percentage among others to one place, so that they line up", () => {
+    expect(formatPercentPoint("12.0")).toBe("12.0%");
+    expect(formatPercentPoint("0.8")).toBe("0.8%");
+    expect(formatPercentPoint("100")).toBe("100.0%");
+    expect(formatPercentPoint("1660.6")).toBe("1,660.6%");
+    expect(formatPercentPoint("0.0")).toBe("0.0%");
+  });
+
+  it("names a month for a chart, and in full", () => {
+    expect(formatMonth("2026-11-01")).toBe("Nov");
+    expect(formatMonth("2026-01-31")).toBe("Jan");
+    expect(formatMonthYear("2026-11-01")).toBe("November 2026");
+    expect(formatMonthYear("2025-12-01")).toBe("December 2025");
   });
 
   it("derives initials", () => {
@@ -486,6 +597,51 @@ describe("exact arithmetic on decimal strings", () => {
     expect(isZero("0")).toBe(true);
     expect(isZero("0.01")).toBe(false);
     expect(isZero("")).toBe(false);
+  });
+});
+
+describe("chart geometry", () => {
+  it("marks a value axis from zero, in round steps, up to the first mark above the tallest bar", () => {
+    expect(axisTicks(367_000)).toEqual([0, 100_000, 200_000, 300_000, 400_000]);
+    expect(axisTicks(400_000)).toEqual([0, 100_000, 200_000, 300_000, 400_000]);
+    expect(axisTicks(400_001)).toEqual([0, 100_000, 200_000, 300_000, 400_000, 500_000]);
+    expect(axisTicks(79_000)).toEqual([0, 20_000, 40_000, 60_000, 80_000]);
+    expect(axisTicks(9_500)).toEqual([0, 2_000, 4_000, 6_000, 8_000, 10_000]);
+    // The smallest round step that needs no more than five of them: a quarter million.
+    expect(axisTicks(1_250_000)).toEqual([0, 250_000, 500_000, 750_000, 1_000_000, 1_250_000]);
+    // Steps of a fifth come out exact, not as 0.6000000000000001.
+    expect(axisTicks(0.9)).toEqual([0, 0.2, 0.4, 0.6, 0.8, 1]);
+  });
+
+  it("marks an axis of counts in whole numbers", () => {
+    expect(axisTicks(64, { whole: true })).toEqual([0, 20, 40, 60, 80]);
+    expect(axisTicks(3, { whole: true })).toEqual([0, 1, 2, 3]);
+    expect(axisTicks(1, { whole: true })).toEqual([0, 1]);
+    expect(axisTicks(7, { whole: true })).toEqual([0, 2, 4, 6, 8]);
+  });
+
+  it("gives an axis something to stand on when there is nothing to draw", () => {
+    expect(axisTicks(0)).toEqual([0, 1]);
+    expect(axisTicks(-5)).toEqual([0, 1]);
+    expect(axisTicks(Number.NaN)).toEqual([0, 1]);
+  });
+
+  it("places a value along an axis, and keeps it on the chart", () => {
+    expect(percentOf(100_000, 400_000)).toBe(25);
+    expect(percentOf(400_000, 400_000)).toBe(100);
+    expect(percentOf(0, 400_000)).toBe(0);
+    expect(percentOf(500_000, 400_000)).toBe(100);
+    expect(percentOf(-1, 400_000)).toBe(0);
+    expect(percentOf(5, 0)).toBe(0);
+  });
+
+  it("reads a decimal string as a number to draw with, and anything else as nothing", () => {
+    expect(toNumber("351024.60")).toBe(351024.6);
+    expect(toNumber("-128.6")).toBe(-128.6);
+    expect(toNumber("0.00")).toBe(0);
+    expect(toNumber(null)).toBe(0);
+    expect(toNumber(undefined)).toBe(0);
+    expect(toNumber("n/a")).toBe(0);
   });
 });
 

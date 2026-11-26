@@ -1,26 +1,12 @@
 import { z } from "zod";
 
 import type { components } from "@/lib/api/schema";
-import type { Expense, ExpenseCategory } from "@/lib/api/types";
+import type { Expense } from "@/lib/api/types";
 import { blankToNull, optionalText, requiredAmount, requiredText } from "@/lib/form-fields";
 
-export const EXPENSE_CATEGORIES = [
-  "materials",
-  "equipment",
-  "subcontractor",
-  "supplies",
-  "travel",
-  "other",
-] as const;
+import { EXPENSE_CATEGORIES } from "./expense-categories";
 
-export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
-  materials: "Materials",
-  equipment: "Equipment",
-  subcontractor: "Subcontractor",
-  supplies: "Supplies",
-  travel: "Travel",
-  other: "Other",
-};
+export { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABELS } from "./expense-categories";
 
 export const expenseSchema = z.object({
   description: requiredText(300, "Enter what was bought or paid for."),

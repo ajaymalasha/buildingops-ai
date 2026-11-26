@@ -175,6 +175,107 @@ is not built.
   the billing engine (`seed/operations/billing.py`), and the tests recompute them from
   the database to the cent.
 
+## Executive dashboard
+
+The dashboard (`modules/analytics`, permission `dashboard:read`: company admins and
+operations managers) reports what the business earned, spent and kept in a period, what is
+waiting on someone today, and where the money and the work go. It stores nothing. Every
+figure is added up by PostgreSQL from the operational records each time it is asked for,
+and each is defined once, in `modules/analytics/definitions.py`, so that a total, its
+breakdown and its trend cannot disagree about what they count.
+
+### What each figure counts
+
+A period is a run of calendar days where the organization is, both ends included.
+
+| Figure | What is added up | Which records | Counted on |
+| --- | --- | --- | --- |
+| Labor cost | `labor_cost` of timesheets | Approved | The day worked (`work_date`) |
+| Expense cost | `amount` of expenses, in all and for each category | Approved | The day incurred (`incurred_on`) |
+| Operating cost | Labor cost + expense cost | | |
+| Revenue | `total` of invoices | Issued or paid. Never a draft or a void invoice | The day issued (`issue_date`) |
+| Margin | Revenue − operating cost | | |
+| Margin percent | Margin ÷ revenue × 100 | No figure at all when revenue is zero | |
+| Collected | `amount` of payments | Every payment recorded | The day received (`received_on`) |
+| Work orders completed | A count | Any work order with a `completed_at` | The day it was finished, where the organization is |
+| Work orders opened | A count | Any work order | The day it was raised (`created_at`), where the organization is |
+| Outstanding invoices | A count, and the sum of `total − amount_paid` | Issued, with something still owed | Today |
+| Overdue invoices | The same | Outstanding, with a due date before today | Today |
+| Open work orders | A count | Status open, scheduled, in progress or on hold | Today |
+| Overdue work orders | A count | Open, with a due date before today | Today |
+| Pending timesheets | A count, and regular + overtime hours | Pending | Today |
+| Pending expenses | A count, and the sum of `amount` | Pending | Today |
+| Buildings, employees, vendors | How many there are, and how many of them have the status active | Not archived | Today |
+
+To reconcile a figure with the records, apply its row to the list: revenue for October is
+the invoices issued in October whose status is issued or paid, and their totals add up to
+it. The figures in the last seven rows are "as of today" and do not change with the
+period. "Today" is the organization's, as everywhere else.
+
+- **Pending and rejected records never count as cost**, and a timesheet or expense that is
+  reopened stops counting until it is approved again.
+- **Overdue is one condition, used twice.** The dashboard counts overdue invoices and
+  work orders with the same expressions the lists filter by (`invoicing.service.overdue`,
+  `workorders.service.overdue`), so a count and the list it links to cannot drift apart.
+- **Percentages** are worked out from the decimal totals, to one decimal place, half up.
+  Where the divisor is zero there is no percentage: the API sends `null`, and the screen
+  shows a dash, or the amount of the change. A change is measured against the size of the
+  figure it changed from, so that a loss of 100 becoming a profit of 100 reads as up.
+- **Timestamps become days in SQL.** `completed_at` and `created_at` are stored in UTC and
+  converted with `timezone(<the organization's zone>, …)::date` before they are compared
+  or grouped, so a work order finished at 11 PM in Auckland counts on that Auckland day
+  and in that Auckland month.
+- **One currency.** Amounts are added up as they are, and labelled with the
+  organization's currency. An organization that records amounts in several currencies
+  would have them added together: nothing converts them.
+
+### Comparison, months, contracts and buildings
+
+- **Comparison.** Each period figure comes with the same figure for the days just before
+  the period, as many of them as the period has: October (31 days) is compared with 31
+  August to 30 September. The response says which days those were (`previous_period`).
+- **Months.** `/dashboard/trends` returns the last `months` calendar months, oldest first.
+  The last one is the month still running: it ends today and is flagged `is_partial`. A
+  month's figures are the summary's for those days.
+- **Contracts.** `/dashboard/contracts` gives each contract its invoices, the approved time
+  booked to it and the approved expenses booked to it, largest margin first. Whatever
+  names no contract (time, expenses, and an invoice with no contract) is one line,
+  `unattributed`, so the lines add up to `totals`, and the totals are the summary's. Only
+  contracts with something in the period are listed.
+- **Buildings.** `/dashboard/buildings` gives each building its operating cost, approved
+  hours, open work orders (today) and work orders completed (in the period): the fifty
+  costliest, and only those with something to show. An expense that names no building is
+  in nobody's line.
+- **Work orders.** `/dashboard/work-orders` counts work orders by status as of today, and
+  those opened in the period by category and by priority.
+
+### Narrowing to a customer or a building
+
+`customer_id` and `building_id` narrow the summary, the months and the work order counts.
+Contracts and buildings are comparisons, and take `customer_id` only.
+
+- Costs, hours and work orders belong to a building. They narrow to that building, or to
+  the customer's buildings, archived ones included: what was spent there was spent. An
+  expense that names no building is left out of a narrowed figure.
+- Invoices and payments belong to a customer, and through their contract to the buildings
+  it covers. A customer narrows them exactly. A building can only narrow them to the
+  contracts that cover it, in full, whatever else those contracts cover.
+- Nothing ties an employee or a vendor to a building or a customer, so those two counts
+  are never narrowed.
+
+The response does not leave this to be guessed. `scope.by_contract` lists the figures that
+a building narrowed only as far as its contracts, and `scope.organization_wide` the ones
+not narrowed at all. The screen says the same in words above the figures. A filter that
+names nothing the organization has gives zeros, as an empty building would.
+
+### Cost
+
+Each endpoint is a handful of statements whatever the amount of data: the summary five,
+the months two, contracts three, buildings two and work orders three, the look-up of the
+organization's time zone among them. A test counts them. Periods are capped at three
+years (1,096 days), the months at 36, and parameters the endpoint does not know are
+refused rather than ignored.
+
 ## Web app
 
 - The App Router with Cache Components: each route has a prerendered static shell, and the
@@ -225,6 +326,38 @@ The screens for operational records follow the same rules and add a few of their
   `lib/decimal.ts`. It never works out what anything costs: a timesheet's rate and labor
   cost are the API's, and the forms do not send them.
 
+The dashboard (`features/dashboard`) is the Overview page for people with
+`dashboard:read`. Everyone else keeps the overview of their organization and their access.
+
+- **Nothing is computed in the browser.** Every amount, percentage and change on the page
+  is the API's, as a decimal string. The page formats them and decides how to lay them
+  out. A decimal becomes a number in one place only, `lib/chart.ts`, to say how long a bar
+  is or which of two is the longer.
+- **The period and the filters are the URL.** `?period=this_quarter`, or
+  `?period=custom&from=…&to=…`, with `customer_id` and `building_id`. The default, the
+  last month that is over, leaves the URL empty: invoices for a month go out early in the
+  next, so a month still running shows most of its revenue against part of its costs.
+  The presets are worked out from today where the organization is.
+- **A count leads to its records.** Each figure under "Needs attention" links to the list
+  filtered to exactly the records it counts (`dashboard-links.ts`). When the dashboard is
+  narrowed by something a list cannot be narrowed by (work orders by customer, invoices
+  by building), the figure is shown without a link, because a list of other records
+  would be worse than none.
+- **Charts are HTML and CSS**, with no charting library ([decision
+  0004](decisions/0004-dashboard-charts.md)). `components/ui/bar-chart.tsx` draws bars
+  on an axis that starts at zero, shows a column's figures on hover, on tap and with the
+  arrow keys, and carries the same figures in a table for assistive technology. The month
+  still running is hatched.
+- **Laid out by the page's width, not the window's.** Beside the sidebar the page is about
+  a quarter narrower than a laptop's window, so the dashboard's breakpoints are container
+  queries. The bands of
+  figures, the contracts table and the two-column sections each fold at the width they
+  need, down to a phone, without scrolling sideways.
+- **Each part loads and fails on its own.** A part that is waiting shows a placeholder in
+  its own shape, and one whose request failed says so and offers to try again, while the
+  rest of the report stays. An organization with nothing recorded gets one plain
+  explanation instead of a page of zeros.
+
 ## Testing
 
 | Level | What it covers | Where |
@@ -232,9 +365,10 @@ The screens for operational records follow the same rules and add a few of their
 | API | Endpoints, permissions, tenancy, sessions, audit, against real PostgreSQL as the app role | `apps/api/tests` |
 | Schema invariants | Row-level security and model/migration drift; every migration runs down and up | `apps/api/tests/test_schema_invariants.py` |
 | Database rules | CHECK and exclusion constraints, partial unique indexes and tenant-safe references, written to as the owner role | `apps/api/tests/test_master_data_constraints.py`, `test_operational_constraints.py` |
-| Demo data | The seed is repeatable, can run on any day, and its invoices add up to its costs | `apps/api/tests/test_seed_and_cli.py` |
-| Web unit and component | Proxy route, session handling, formatting, time zones and week arithmetic, exact decimal sums, shared components, what each form checks and sends, which status moves are offered | `apps/web/src/**/*.test.ts(x)` |
-| End to end | Sign-in, each role, tenant isolation, keeping master data, and running operations (work orders, the schedule, approving time and expenses, reading invoices), in a real browser against the real stack | `apps/web/e2e` |
+| Dashboard figures | Every definition above against a small set of books worked out by hand, including the records that must not count (pending, rejected, draft, void, outside the period, another organization), each filter, the comparison, day and month boundaries in time zones far from UTC, and how many statements each endpoint sends | `apps/api/tests/test_dashboard.py` |
+| Demo data | The seed is repeatable, can run on any day, and its invoices add up to its costs. The dashboard's figures for it equal sums taken straight from the tables, and its contracts and months add up to its summary | `apps/api/tests/test_seed_and_cli.py` |
+| Web unit and component | Proxy route, session handling, formatting, time zones and week arithmetic, the dashboard's periods and links, exact decimal sums, shared components (the bar chart among them), what each form checks and sends, which status moves are offered | `apps/web/src/**/*.test.ts(x)` |
+| End to end | Sign-in, each role, tenant isolation, keeping master data, running operations (work orders, the schedule, approving time and expenses, reading invoices), and the dashboard: its figures against the API's, each period and filter in the URL, each count against the list it leads to, loading, a failed part, an empty organization, a phone, and every figure whole at widths from 320 to 1280 pixels, in a real browser against the real stack | `apps/web/e2e` |
 
 ## Planned (not built yet)
 

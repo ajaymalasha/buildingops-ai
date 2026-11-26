@@ -915,6 +915,130 @@ def test_the_seeded_history_is_there_to_work_with(client: TestClient, history_ru
 
 
 @pytest.mark.parametrize(
+    ("slug", "email"),
+    [
+        ("meridian", "dana.whitfield@meridianfs.example"),
+        ("northgate", "helen.brandt@northgatebs.example"),
+    ],
+)
+def test_the_seeded_dashboard_adds_up_to_the_seeded_records(
+    client: TestClient, admin_database: Database, history_runs: HistoryRuns, slug: str, email: str
+):
+    """The dashboard for the whole seeded year, checked three ways: against sums taken
+    straight from the tables, the contract lines against the summary, and the months of
+    the trend against the summary for the same days."""
+    headers = {"Authorization": f"Bearer {sign_in(client, email, DEMO_PASSWORD)}"}
+    year = {"from": FIRST_DAY.isoformat(), "to": TODAY.isoformat()}
+    money = ("revenue", "labor_cost", "expense_cost", "operating_cost", "margin")
+
+    def get(endpoint: str, **params):
+        response = client.get(f"/api/v1/dashboard/{endpoint}", headers=headers, params=params)
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    def amounts(figures: dict) -> dict[str, Decimal]:
+        """The money figures of a summary, or of a line, as decimals."""
+        return {
+            name: Decimal(figures[name]["value"] if "period" in figures else figures[name])
+            for name in money
+        }
+
+    summary = get("summary", **year)
+
+    # --- against the tables themselves ---
+    with admin_database.session() as db:
+        organization_id = db.scalar(select(Organization.id).where(Organization.slug == slug))
+
+        def added_up(model, amount, day, *conditions):
+            return db.scalar(
+                select(func.sum(amount)).where(
+                    model.organization_id == organization_id,
+                    day.between(FIRST_DAY, TODAY),
+                    *conditions,
+                )
+            )
+
+        labor = added_up(
+            Timesheet, Timesheet.labor_cost, Timesheet.work_date, Timesheet.status == APPROVED
+        )
+        spending = added_up(
+            Expense, Expense.amount, Expense.incurred_on, Expense.status == APPROVED
+        )
+        invoiced = added_up(
+            Invoice,
+            Invoice.total,
+            Invoice.issue_date,
+            Invoice.status.in_([InvoiceStatus.ISSUED, InvoiceStatus.PAID]),
+        )
+        received = added_up(Payment, Payment.amount, Payment.received_on)
+        owed = db.execute(
+            select(func.count(), func.sum(Invoice.total - Invoice.amount_paid)).where(
+                Invoice.organization_id == organization_id,
+                Invoice.status == InvoiceStatus.ISSUED,
+                Invoice.total > Invoice.amount_paid,
+            )
+        ).one()
+        waiting = db.scalar(
+            select(func.count())
+            .select_from(Timesheet)
+            .where(Timesheet.organization_id == organization_id, Timesheet.status == PENDING)
+        )
+    assert amounts(summary) == {
+        "revenue": invoiced,
+        "labor_cost": labor,
+        "expense_cost": spending,
+        "operating_cost": labor + spending,
+        "margin": invoiced - labor - spending,
+    }
+    assert Decimal(summary["collected"]["value"]) == received
+    assert summary["invoices_outstanding"] == {"count": owed[0], "amount": str(owed[1])}
+    assert summary["timesheets_pending"]["count"] == waiting > 50
+    # A year of a real business: most of what is spent is labor.
+    assert invoiced > 500_000
+    assert labor > spending > 0
+
+    # --- the contract lines against the summary ---
+    def lines_come_to_the_summary(**customer: str) -> dict:
+        profitability = get("contracts", **year, **customer)
+        lines = [*profitability["contracts"], profitability["unattributed"]]
+        expected = amounts(get("summary", **year, **customer))
+        assert amounts(profitability["totals"]) == expected
+        assert {name: sum(Decimal(line[name]) for line in lines) for name in money} == expected
+        return profitability
+
+    profitability = lines_come_to_the_summary()
+    margins = [Decimal(line["margin"]) for line in profitability["contracts"]]
+    assert len(margins) >= 3
+    assert margins == sorted(margins, reverse=True)
+    # Some contracts make money and some lose it, which is what the table is there to show.
+    assert margins[0] > 0 > margins[-1]
+    # Every invoice is under a contract. Some of what is bought is booked to none, and
+    # has a line of its own.
+    assert Decimal(profitability["unattributed"]["revenue"]) == 0
+    assert Decimal(profitability["unattributed"]["expense_cost"]) > 0
+    customers = client.get("/api/v1/customers", headers=headers, params={"page_size": 200})
+    for customer in customers.json()["items"]:
+        lines_come_to_the_summary(customer_id=customer["id"])
+
+    # --- the months of the trend against the summary for the same days ---
+    trends = get("trends", months=36)
+    months = trends["months"]
+    window = get("summary", **{"from": months[0]["month"], "to": trends["as_of"]})
+    assert {name: sum(Decimal(month[name]) for month in months) for name in money} == amounts(
+        window
+    )
+    assert (
+        sum(month["work_orders_completed"] for month in months)
+        == (window["work_orders_completed"]["value"])
+    )
+    # The buildings that cost the most, costliest first, and never more than the whole.
+    compared = get("buildings", **year)["buildings"]
+    costs = [Decimal(line["operating_cost"]) for line in compared]
+    assert costs == sorted(costs, reverse=True)
+    assert 0 < sum(costs) <= labor + spending
+
+
+@pytest.mark.parametrize(
     "day",
     [
         date(2026, 11, 1),  # the clocks go back, and the master data is from later in the month

@@ -62,6 +62,33 @@ export function weekDays(monday: string): string[] {
   return Array.from({ length: 7 }, (_, index) => addDays(monday, index));
 }
 
+/**
+ * The first day of the month `date` is in, or of the month that many `months` after it
+ * (before it, when negative), as YYYY-MM-DD.
+ */
+export function startOfMonth(date: string, months = 0): string {
+  const day = new Date(`${date}T00:00:00Z`);
+  return new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth() + months, 1))
+    .toISOString()
+    .slice(0, 10);
+}
+
+/** The last day of the month `date` is in. */
+export function endOfMonth(date: string): string {
+  return addDays(startOfMonth(date, 1), -1);
+}
+
+/** The first day of the quarter `date` is in: of January, April, July or October. */
+export function startOfQuarter(date: string): string {
+  const month = new Date(`${date}T00:00:00Z`).getUTCMonth(); // January is 0
+  return startOfMonth(date, -(month % 3));
+}
+
+/** The first day of the year `date` is in. */
+export function startOfYear(date: string): string {
+  return `${date.slice(0, 4)}-01-01`;
+}
+
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const TIME = /^(\d{2}):(\d{2})$/;
 

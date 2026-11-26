@@ -27,7 +27,8 @@ honest: nothing is listed as working unless it is implemented and tested.
 | Schedule: a weekly roster for each building, with shifts added, changed and cancelled, and overlaps refused | **Working** (API, screens and demo data) |
 | Timesheets and expenses: entering them, and approving, rejecting and reopening them, with time approved several at once | **Working** (API, screens and demo data) |
 | Invoices and payments | **Read only** (API and screens), as seeded history: a list, and each invoice with its lines and the payments received. Generating invoices and recording payments are planned |
-| Executive dashboard, data import, entity resolution | Planned |
+| Executive dashboard: revenue, operating cost, margin and collections for a period against the one before, what needs attention today, twelve months of revenue against cost, contract profitability, where the cost goes and the work order backlog | **Working** (API, screen and demo data), for company admins and operations managers. Every figure is added up in SQL from the records and [defined in the architecture document](docs/architecture.md#executive-dashboard). Amounts are added up as one currency: an organization that bills in several is not converted |
+| Data import, entity resolution | Planned |
 | Workforce workflows, cost-plus billing | Planned |
 | RFP automation, voice agent, training studio (Claude) | Planned |
 | Customer and vendor portals, external system integrations | Planned |
@@ -47,7 +48,8 @@ the seed command from the seeded timesheets and expenses, not by a billing engin
 | Tooling | uv, pnpm, Ruff, mypy (strict), pytest, Vitest, Playwright, GitHub Actions, Docker |
 
 Redis, Celery, pandas, the Anthropic SDK and the document libraries are part of the plan and
-are added by the slice that first needs them.
+are added by the slice that first needs them. The dashboard needed none: it adds up in SQL
+and draws its charts with HTML and CSS ([decision 0004](docs/decisions/0004-dashboard-charts.md)).
 
 ## Quick start
 
@@ -64,8 +66,8 @@ the password `BuildingOps-Demo-2026`.
 
 | Account | Access |
 | --- | --- |
-| `dana.whitfield@meridianfs.example` | Company admin of two organizations (try the organization switcher) |
-| `marcus.okafor@meridianfs.example` | Operations manager |
+| `dana.whitfield@meridianfs.example` | Company admin of two organizations (try the organization switcher). Opens on the executive dashboard |
+| `marcus.okafor@meridianfs.example` | Operations manager. Opens on the executive dashboard too |
 | `priya.raman@meridianfs.example` | Supervisor: runs work orders and the schedule, enters and approves time (never her own) and enters expenses. Reads the directory, but sees no pay rates, labor costs, contracts or invoices, and approves no expenses |
 | `luis.ortega@meridianfs.example` | Employee |
 | `platform.admin@buildingops.example` | Platform admin: manages every organization |
@@ -111,7 +113,7 @@ docs        Architecture, decisions, development guide
 ```
 
 Three decisions shape everything else. Each has a short record under
-[`docs/decisions`](docs/decisions).
+[`docs/decisions`](docs/decisions), beside the records of smaller ones.
 
 1. **Tenant isolation is enforced by the database.** Every tenant table has a row-level
    security policy, the API connects as a role that cannot bypass it, and references

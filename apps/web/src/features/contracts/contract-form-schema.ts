@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import type { BadgeTone } from "@/components/ui/badge";
 import type { components } from "@/lib/api/schema";
-import type { BillingModel, Contract, ContractDetail, ContractStatus } from "@/lib/api/types";
+import type { Contract, ContractDetail, ContractStatus } from "@/lib/api/types";
 import {
   blankToNull,
   optionalAmount,
@@ -12,6 +12,10 @@ import {
   wholeNumber,
 } from "@/lib/form-fields";
 import { formatMoney, formatPercent } from "@/lib/format";
+
+import { BILLING_MODELS } from "./billing-models";
+
+export { BILLING_MODELS, BILLING_MODEL_LABELS } from "./billing-models";
 
 export const CONTRACT_STATUSES = ["draft", "active", "expired", "terminated"] as const;
 
@@ -27,14 +31,6 @@ export const CONTRACT_STATUS_TONES: Record<ContractStatus, BadgeTone> = {
   active: "positive",
   expired: "caution",
   terminated: "neutral",
-};
-
-export const BILLING_MODELS = ["cost_plus", "fixed_fee", "time_and_materials"] as const;
-
-export const BILLING_MODEL_LABELS: Record<BillingModel, string> = {
-  cost_plus: "Cost plus",
-  fixed_fee: "Fixed fee",
-  time_and_materials: "Time and materials",
 };
 
 const contractFields = z.object({
