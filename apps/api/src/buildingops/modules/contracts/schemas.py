@@ -40,6 +40,14 @@ class ContractCustomer(ResponseModel):
     name: str
 
 
+class ContractRef(ResponseModel):
+    """A contract as it appears inside another record: what it is called, not its terms."""
+
+    id: UUID
+    contract_number: str
+    name: str
+
+
 class ContractRead(ResponseModel):
     id: UUID
     contract_number: str

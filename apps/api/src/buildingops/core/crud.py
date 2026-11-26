@@ -1,9 +1,10 @@
 """Mechanics shared by the services that manage tenant-owned records.
 
 Finding a row inside the caller's organization, giving a new record its code, applying a
-partial update, archiving, and writing the audit entry that goes with each change work the
-same way for every resource. What differs stays in the resource's own service: validation,
-read models, and which records stand in the way of an archive.
+partial update, archiving or making another named move, and writing the audit entry that
+goes with each change work the same way for every resource. What differs stays in the
+resource's own service: validation, read models, and which records stand in the way of an
+archive.
 
 Two row locks keep "this row is live" true until the transaction ends. A row that a change
 comes to depend on is read with a key-share lock (`get_referenced`), which leaves ordinary
@@ -102,6 +103,40 @@ def get_referenced[M: TenantRecord](
     if record is None:
         raise ValidationFailedError.for_field(field, message, code)
     return record
+
+
+def get_held[M: TenantRecord](ctx: Context, model: type[M], record_id: uuid.UUID) -> M:
+    """The row another record already points at, archived or not.
+
+    The foreign key says it exists. It is not asked to be live, because a record keeps the
+    building, person or vendor it was for after they are archived, and goes on naming them.
+    """
+    statement = select(model).where(
+        model.organization_id == ctx.organization_id, model.id == record_id
+    )
+    return ctx.db.execute(statement).scalar_one()
+
+
+def new_reference[M: TenantRecord](
+    ctx: Context,
+    model: type[M],
+    values: Mapping[str, Any],
+    field: str,
+    *,
+    message: str,
+    record: TenantRecord | None = None,
+) -> M | None:
+    """The live row that `values` newly points `field` at, checked as `get_referenced` does.
+
+    None when the request leaves the field out or clears it, and when `record`, the one
+    being updated, points there already. A reference held from before is not checked
+    again: the row it names may have been archived since, and the record keeps it as
+    history.
+    """
+    record_id: uuid.UUID | None = values.get(field)
+    if record_id is None or (record is not None and getattr(record, field) == record_id):
+        return None
+    return get_referenced(ctx, model, record_id, field=field, message=message)
 
 
 def lock_live(
@@ -260,6 +295,33 @@ def update(
     return changes
 
 
+def transition(
+    ctx: Context,
+    record: TenantRecord,
+    values: Mapping[str, Any],
+    *,
+    action: str,
+    entity_type: str,
+    summary: str,
+) -> dict[str, Any]:
+    """Apply `values` and record `<entity_type>.<action>`.
+
+    For a change with a name of its own, such as an approval or a cancellation, that the
+    caller has already found to be allowed. Returns the field-level diff.
+    """
+    changes = _apply(record, values)
+    ctx.db.flush()
+    audit.record(
+        ctx,
+        action=f"{entity_type}.{action}",
+        entity_type=entity_type,
+        entity_id=record.id,
+        summary=summary,
+        changes=changes,
+    )
+    return changes
+
+
 def archive(
     ctx: Context,
     record: ArchivableRecord,
@@ -274,15 +336,13 @@ def archive(
     lists and lookups. `releasing` clears fields an archived row must not keep holding,
     such as a link that only one live row may have.
     """
-    changes = _apply(record, {**(releasing or {}), "deleted_at": utcnow()})
-    ctx.db.flush()
-    audit.record(
+    transition(
         ctx,
-        action=f"{entity_type}.archived",
+        record,
+        {**(releasing or {}), "deleted_at": utcnow()},
+        action="archived",
         entity_type=entity_type,
-        entity_id=record.id,
         summary=summary,
-        changes=changes,
     )
 
 

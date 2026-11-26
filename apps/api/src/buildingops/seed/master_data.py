@@ -40,6 +40,7 @@ from buildingops.modules.workforce.models import (
     EmploymentType,
     JobRole,
 )
+from buildingops.seed.calendar import first_of_month
 from buildingops.seed.catalog import (
     DIRECTORIES,
     FIRST_NAMES,
@@ -406,7 +407,7 @@ class _DirectorySeeder:
     def _contracts(self, accounts: dict[str, _Account]) -> None:
         for spec in self.spec.contracts:
             account = accounts[spec.customer]
-            start = _first_of_month(self.today, months_ago=spec.started_months_ago)
+            start = first_of_month(self.today, months_ago=spec.started_months_ago)
             contract = Contract(
                 organization_id=self.organization.id,
                 customer_id=account.customer.id,
@@ -416,7 +417,7 @@ class _DirectorySeeder:
                 billing_model=spec.billing_model,
                 start_date=start,
                 end_date=(
-                    _first_of_month(start, months_ago=-spec.term_months) - timedelta(days=1)
+                    first_of_month(start, months_ago=-spec.term_months) - timedelta(days=1)
                     if spec.term_months
                     else None
                 ),
@@ -472,8 +473,3 @@ class _DirectorySeeder:
 
 def _email(first_name: str, last_name: str, domain: str) -> str:
     return f"{first_name}.{last_name}@{domain}".lower()
-
-
-def _first_of_month(day: date, *, months_ago: int) -> date:
-    months = day.year * 12 + day.month - 1 - months_ago
-    return date(months // 12, months % 12 + 1, 1)

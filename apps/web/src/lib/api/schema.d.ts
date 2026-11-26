@@ -299,6 +299,136 @@ export interface paths {
         patch: operations["update_assignment"];
         trace?: never;
     };
+    "/api/v1/expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List expenses */
+        get: operations["list_expenses"];
+        put?: never;
+        /**
+         * Enter an expense
+         * @description It starts as pending, in the organization's currency.
+         */
+        post: operations["create_expense"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/expenses/{expense_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an expense */
+        get: operations["read_expense"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a pending expense
+         * @description Refused with a 409 once the expense has been approved or rejected.
+         */
+        patch: operations["update_expense"];
+        trace?: never;
+    };
+    "/api/v1/expenses/{expense_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve an expense */
+        post: operations["approve_expense"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/expenses/{expense_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject an expense, with a reason */
+        post: operations["reject_expense"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/expenses/{expense_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Return a decided expense to pending
+         * @description Clears the decision, so that the expense can be edited and decided again.
+         */
+        post: operations["reopen_expense"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List invoices */
+        get: operations["list_invoices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoice_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an invoice with its lines and payments */
+        get: operations["read_invoice"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/job-roles": {
         parameters: {
             query?: never;
@@ -427,6 +557,210 @@ export interface paths {
         patch: operations["set_organization_status"];
         trace?: never;
     };
+    "/api/v1/shifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the shifts that start within a range of days
+         * @description Both `from` and `to` are required, and may be at most 62 days apart.
+         */
+        get: operations["list_shifts"];
+        put?: never;
+        /**
+         * Schedule a shift
+         * @description Refused with a 409 if it overlaps another shift of the same employee.
+         */
+        post: operations["create_shift"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shifts/{shift_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a shift */
+        get: operations["read_shift"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a shift
+         * @description Moves it, or marks it completed or missed. A cancelled shift cannot be changed.
+         */
+        patch: operations["update_shift"];
+        trace?: never;
+    };
+    "/api/v1/shifts/{shift_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a scheduled shift
+         * @description The shift stays on record, and no longer counts when looking for overlaps.
+         */
+        post: operations["cancel_shift"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List timesheets */
+        get: operations["list_timesheets"];
+        put?: never;
+        /**
+         * Enter a timesheet
+         * @description It starts as pending. Its hourly rate is the employee's and its labor cost is worked out from the hours: neither can be sent.
+         */
+        post: operations["create_timesheet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve several timesheets at once
+         * @description All of them or none: if one is missing, already decided or the caller's own, nothing is approved. At most 200 at a time.
+         */
+        post: operations["approve_timesheets"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Count timesheets and add up their hours, by status
+         * @description Takes the same filters as the list.
+         */
+        get: operations["summarize_timesheets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/{timesheet_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a timesheet */
+        get: operations["read_timesheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a pending timesheet
+         * @description Refused with a 409 once the timesheet has been approved or rejected.
+         */
+        patch: operations["update_timesheet"];
+        trace?: never;
+    };
+    "/api/v1/timesheets/{timesheet_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a timesheet
+         * @description Nobody can approve their own time: that is a 403.
+         */
+        post: operations["approve_timesheet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/{timesheet_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a timesheet, with a reason */
+        post: operations["reject_timesheet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/{timesheet_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Return a decided timesheet to pending
+         * @description Clears the decision, so that the timesheet can be edited and decided again.
+         */
+        post: operations["reopen_timesheet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/vendors": {
         parameters: {
             query?: never;
@@ -462,6 +796,85 @@ export interface paths {
         head?: never;
         /** Update a vendor */
         patch: operations["update_vendor"];
+        trace?: never;
+    };
+    "/api/v1/work-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List work orders */
+        get: operations["list_work_orders"];
+        put?: never;
+        /**
+         * Add a work order
+         * @description It starts as open and is given the next number (WO-0001).
+         */
+        post: operations["create_work_order"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/work-orders/{work_order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a work order and its history */
+        get: operations["read_work_order"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a work order
+         * @description Changes its details and who it is assigned to. The status has its own endpoint.
+         */
+        patch: operations["update_work_order"];
+        trace?: never;
+    };
+    "/api/v1/work-orders/{work_order_id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Comment on a work order */
+        post: operations["add_work_order_comment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/work-orders/{work_order_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a work order to another status
+         * @description Open goes to scheduled, in progress, on hold or cancelled. Scheduled goes to in progress, on hold, cancelled or back to open. In progress goes to on hold, completed or cancelled. On hold goes to open, scheduled, in progress or cancelled. Completed can be reopened as in progress, and cancelled as open. Any other move is a 409.
+         */
+        post: operations["change_work_order_status"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/healthz": {
@@ -896,6 +1309,21 @@ export interface components {
             updated_at: string;
         };
         /**
+         * ContractRef
+         * @description A contract as it appears inside another record: what it is called, not its terms.
+         */
+        ContractRef: {
+            /** Contract Number */
+            contract_number: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
          * ContractStatus
          * @enum {string}
          */
@@ -1070,6 +1498,11 @@ export interface components {
             region?: string | null;
             status?: components["schemas"]["CustomerStatus"] | null;
         };
+        /**
+         * DecisionStatus
+         * @enum {string}
+         */
+        DecisionStatus: "pending" | "approved" | "rejected";
         /** EmployeeCreate */
         EmployeeCreate: {
             /** Email */
@@ -1236,6 +1669,18 @@ export interface components {
          * @enum {string}
          */
         EmployeeStatus: "onboarding" | "active" | "on_leave" | "terminated";
+        /** EmployeeSummary */
+        EmployeeSummary: {
+            /** Employee Number */
+            employee_number: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+        };
         /** EmployeeUpdate */
         EmployeeUpdate: {
             /** Email */
@@ -1270,6 +1715,115 @@ export interface components {
          * @enum {string}
          */
         EmploymentType: "full_time" | "part_time" | "contractor" | "temporary";
+        /**
+         * ExpenseCategory
+         * @enum {string}
+         */
+        ExpenseCategory: "materials" | "equipment" | "subcontractor" | "supplies" | "travel" | "other";
+        /** ExpenseCreate */
+        ExpenseCreate: {
+            /**
+             * Amount
+             * @description In the organization's currency.
+             */
+            amount: number | string;
+            /**
+             * Billable
+             * @default true
+             */
+            billable: boolean;
+            /** Building Id */
+            building_id?: string | null;
+            category: components["schemas"]["ExpenseCategory"];
+            /**
+             * Contract Id
+             * @description It must cover the building, when both are given.
+             */
+            contract_id?: string | null;
+            /** Description */
+            description: string;
+            /**
+             * Incurred On
+             * Format: date
+             */
+            incurred_on: string;
+            /** Reference */
+            reference?: string | null;
+            /** Vendor Id */
+            vendor_id?: string | null;
+            /** Work Order Id */
+            work_order_id?: string | null;
+        };
+        /** ExpenseRead */
+        ExpenseRead: {
+            /** Amount */
+            amount: string;
+            /** Billable */
+            billable: boolean;
+            building: components["schemas"]["BuildingRef"] | null;
+            category: components["schemas"]["ExpenseCategory"];
+            contract: components["schemas"]["ContractRef"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Decided At */
+            decided_at: string | null;
+            /** Decided By Name */
+            decided_by_name: string | null;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Incurred On
+             * Format: date
+             */
+            incurred_on: string;
+            /**
+             * Reference
+             * @description A receipt or vendor invoice number.
+             */
+            reference: string | null;
+            /** Rejection Reason */
+            rejection_reason: string | null;
+            status: components["schemas"]["DecisionStatus"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            vendor: components["schemas"]["VendorRef"] | null;
+            work_order: components["schemas"]["WorkOrderRef"] | null;
+        };
+        /** ExpenseUpdate */
+        ExpenseUpdate: {
+            /** Amount */
+            amount?: number | string | null;
+            /** Billable */
+            billable?: boolean | null;
+            /** Building Id */
+            building_id?: string | null;
+            category?: components["schemas"]["ExpenseCategory"] | null;
+            /** Contract Id */
+            contract_id?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Incurred On */
+            incurred_on?: string | null;
+            /** Reference */
+            reference?: string | null;
+            /** Vendor Id */
+            vendor_id?: string | null;
+            /** Work Order Id */
+            work_order_id?: string | null;
+        };
         /** FieldProblem */
         FieldProblem: {
             /** Code */
@@ -1286,6 +1840,179 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** InvoiceDetail */
+        InvoiceDetail: {
+            /** Amount Paid */
+            amount_paid: string;
+            /**
+             * Balance Due
+             * @description The total less what has been paid.
+             */
+            balance_due: string;
+            contract: components["schemas"]["ContractRef"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            customer: components["schemas"]["CustomerSummary"];
+            /** Due Date */
+            due_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Is Overdue
+             * @description Issued, with a balance due, and due before today in the organization's time zone.
+             */
+            is_overdue: boolean;
+            /**
+             * Issue Date
+             * @description Null while the invoice is a draft.
+             */
+            issue_date: string | null;
+            /**
+             * Lines
+             * @description In the order they appear on the invoice.
+             */
+            lines: components["schemas"]["InvoiceLineRead"][];
+            /** Markup Amount */
+            markup_amount: string;
+            /** Notes */
+            notes: string | null;
+            /** Number */
+            number: string;
+            /**
+             * Payments
+             * @description Oldest first.
+             */
+            payments: components["schemas"]["PaymentRead"][];
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            status: components["schemas"]["InvoiceStatus"];
+            /**
+             * Subtotal
+             * @description The cost billed, before markup and tax.
+             */
+            subtotal: string;
+            /** Tax Amount */
+            tax_amount: string;
+            /** Total */
+            total: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * InvoiceLineKind
+         * @enum {string}
+         */
+        InvoiceLineKind: "labor" | "materials" | "equipment" | "subcontractor" | "fee" | "markup" | "other";
+        /** InvoiceLineRead */
+        InvoiceLineRead: {
+            /** Amount */
+            amount: string;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["InvoiceLineKind"];
+            /** Position */
+            position: number;
+            /** Quantity */
+            quantity: string;
+            /** Unit Price */
+            unit_price: string;
+        };
+        /** InvoiceRead */
+        InvoiceRead: {
+            /** Amount Paid */
+            amount_paid: string;
+            /**
+             * Balance Due
+             * @description The total less what has been paid.
+             */
+            balance_due: string;
+            contract: components["schemas"]["ContractRef"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            customer: components["schemas"]["CustomerSummary"];
+            /** Due Date */
+            due_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Is Overdue
+             * @description Issued, with a balance due, and due before today in the organization's time zone.
+             */
+            is_overdue: boolean;
+            /**
+             * Issue Date
+             * @description Null while the invoice is a draft.
+             */
+            issue_date: string | null;
+            /** Markup Amount */
+            markup_amount: string;
+            /** Notes */
+            notes: string | null;
+            /** Number */
+            number: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            status: components["schemas"]["InvoiceStatus"];
+            /**
+             * Subtotal
+             * @description The cost billed, before markup and tax.
+             */
+            subtotal: string;
+            /** Tax Amount */
+            tax_amount: string;
+            /** Total */
+            total: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * InvoiceStatus
+         * @enum {string}
+         */
+        InvoiceStatus: "draft" | "issued" | "paid" | "void";
         /** JobRoleCreate */
         JobRoleCreate: {
             /** Default Hourly Rate */
@@ -1645,6 +2372,28 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** Page[ExpenseRead] */
+        Page_ExpenseRead_: {
+            /** Items */
+            items: components["schemas"]["ExpenseRead"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[InvoiceRead] */
+        Page_InvoiceRead_: {
+            /** Items */
+            items: components["schemas"]["InvoiceRead"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
         /** Page[JobRoleRead] */
         Page_JobRoleRead_: {
             /** Items */
@@ -1678,6 +2427,28 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** Page[ShiftRead] */
+        Page_ShiftRead_: {
+            /** Items */
+            items: components["schemas"]["ShiftRead"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[TimesheetRead] */
+        Page_TimesheetRead_: {
+            /** Items */
+            items: components["schemas"]["TimesheetRead"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
         /** Page[VendorRead] */
         Page_VendorRead_: {
             /** Items */
@@ -1689,11 +2460,45 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** Page[WorkOrderRead] */
+        Page_WorkOrderRead_: {
+            /** Items */
+            items: components["schemas"]["WorkOrderRead"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * PaymentMethod
+         * @enum {string}
+         */
+        PaymentMethod: "ach" | "check" | "card" | "wire" | "other";
+        /** PaymentRead */
+        PaymentRead: {
+            /** Amount */
+            amount: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            method: components["schemas"]["PaymentMethod"];
+            /**
+             * Received On
+             * Format: date
+             */
+            received_on: string;
+            /** Reference */
+            reference: string | null;
+        };
         /**
          * Permission
          * @enum {string}
          */
-        Permission: "organization:read" | "organization:update" | "members:read" | "members:manage" | "audit:read" | "customers:read" | "customers:write" | "buildings:read" | "buildings:write" | "vendors:read" | "vendors:write" | "employees:read" | "employees:write" | "employees:read_compensation" | "contracts:read" | "contracts:write" | "platform:organizations";
+        Permission: "organization:read" | "organization:update" | "members:read" | "members:manage" | "audit:read" | "customers:read" | "customers:write" | "buildings:read" | "buildings:write" | "vendors:read" | "vendors:write" | "employees:read" | "employees:write" | "employees:read_compensation" | "contracts:read" | "contracts:write" | "work_orders:read" | "work_orders:write" | "schedule:read" | "schedule:write" | "timesheets:read" | "timesheets:write" | "timesheets:approve" | "expenses:read" | "expenses:write" | "expenses:approve" | "invoices:read" | "platform:organizations";
         /** PlatformOrganizationRead */
         PlatformOrganizationRead: {
             /**
@@ -1755,11 +2560,107 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** Rejection */
+        Rejection: {
+            /**
+             * Reason
+             * @description Why it is rejected. Kept on the record for whoever entered it.
+             */
+            reason: string;
+        };
         /**
          * Role
          * @enum {string}
          */
         Role: "platform_admin" | "company_admin" | "operations_manager" | "supervisor" | "employee" | "customer" | "vendor";
+        /** ShiftCreate */
+        ShiftCreate: {
+            /**
+             * Break Minutes
+             * @default 0
+             */
+            break_minutes: number;
+            /**
+             * Building Id
+             * Format: uuid
+             */
+            building_id: string;
+            /**
+             * Employee Id
+             * Format: uuid
+             */
+            employee_id: string;
+            /**
+             * Ends At
+             * Format: date-time
+             * @description After the start, and at most 24 hours after it.
+             */
+            ends_at: string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+        };
+        /** ShiftRead */
+        ShiftRead: {
+            /** Break Minutes */
+            break_minutes: number;
+            building: components["schemas"]["BuildingRef"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            employee: components["schemas"]["EmployeeSummary"];
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            status: components["schemas"]["ShiftStatus"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * ShiftStatus
+         * @enum {string}
+         */
+        ShiftStatus: "scheduled" | "completed" | "missed" | "cancelled";
+        /** ShiftUpdate */
+        ShiftUpdate: {
+            /** Break Minutes */
+            break_minutes?: number | null;
+            /** Building Id */
+            building_id?: string | null;
+            /** Employee Id */
+            employee_id?: string | null;
+            /** Ends At */
+            ends_at?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Starts At */
+            starts_at?: string | null;
+            /** @description Scheduled, completed or missed. Cancelling a shift has its own endpoint. */
+            status?: components["schemas"]["ShiftStatus"] | null;
+        };
         /** SwitchOrganizationRequest */
         SwitchOrganizationRequest: {
             /**
@@ -1767,6 +2668,167 @@ export interface components {
              * Format: uuid
              */
             organization_id: string;
+        };
+        /** TimesheetBulkApproval */
+        TimesheetBulkApproval: {
+            /** Ids */
+            ids: string[];
+        };
+        /** TimesheetBulkApproved */
+        TimesheetBulkApproved: {
+            /**
+             * Approved
+             * @description How many timesheets were approved: all of them.
+             */
+            approved: number;
+        };
+        /** TimesheetCreate */
+        TimesheetCreate: {
+            /**
+             * Building Id
+             * Format: uuid
+             */
+            building_id: string;
+            /**
+             * Contract Id
+             * @description It must cover the building.
+             */
+            contract_id?: string | null;
+            /**
+             * Employee Id
+             * Format: uuid
+             * @description They must have an hourly rate: it prices the time.
+             */
+            employee_id: string;
+            /**
+             * Hours Overtime
+             * @default 0.00
+             */
+            hours_overtime: number | string;
+            /** Hours Regular */
+            hours_regular: number | string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Overtime Multiplier
+             * @default 1.50
+             */
+            overtime_multiplier: number | string;
+            /**
+             * Shift Id
+             * @description A shift of the same employee at the same building.
+             */
+            shift_id?: string | null;
+            /**
+             * Work Date
+             * Format: date
+             */
+            work_date: string;
+        };
+        /** TimesheetRead */
+        TimesheetRead: {
+            building: components["schemas"]["BuildingRef"];
+            contract: components["schemas"]["ContractRef"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decided At */
+            decided_at: string | null;
+            /** Decided By Name */
+            decided_by_name: string | null;
+            employee: components["schemas"]["EmployeeSummary"];
+            /**
+             * Hourly Rate
+             * @description The employee's rate when the time was entered. Null for callers who may not see compensation.
+             */
+            hourly_rate: string | null;
+            /** Hours Overtime */
+            hours_overtime: string;
+            /** Hours Regular */
+            hours_regular: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Labor Cost
+             * @description Worked out from the hours and the rate. Null for callers who may not see compensation.
+             */
+            labor_cost: string | null;
+            /** Notes */
+            notes: string | null;
+            /** Overtime Multiplier */
+            overtime_multiplier: string;
+            /** Rejection Reason */
+            rejection_reason: string | null;
+            /** Shift Id */
+            shift_id: string | null;
+            source: components["schemas"]["TimesheetSource"];
+            status: components["schemas"]["DecisionStatus"];
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Work Date
+             * Format: date
+             */
+            work_date: string;
+        };
+        /**
+         * TimesheetSource
+         * @enum {string}
+         */
+        TimesheetSource: "manual" | "schedule" | "voice" | "import";
+        /**
+         * TimesheetSummary
+         * @description Counts and hours for each status, over the timesheets the filters select.
+         */
+        TimesheetSummary: {
+            approved: components["schemas"]["TimesheetTotals"];
+            pending: components["schemas"]["TimesheetTotals"];
+            rejected: components["schemas"]["TimesheetTotals"];
+        };
+        /** TimesheetTotals */
+        TimesheetTotals: {
+            /** Count */
+            count: number;
+            /** Hours Overtime */
+            hours_overtime: string;
+            /** Hours Regular */
+            hours_regular: string;
+            /** Hours Total */
+            hours_total: string;
+        };
+        /** TimesheetUpdate */
+        TimesheetUpdate: {
+            /** Building Id */
+            building_id?: string | null;
+            /** Contract Id */
+            contract_id?: string | null;
+            /** Employee Id */
+            employee_id?: string | null;
+            /** Hours Overtime */
+            hours_overtime?: number | string | null;
+            /** Hours Regular */
+            hours_regular?: number | string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Overtime Multiplier */
+            overtime_multiplier?: number | string | null;
+            /** Shift Id */
+            shift_id?: string | null;
+            /** Work Date */
+            work_date?: string | null;
         };
         /** UserRead */
         UserRead: {
@@ -1879,6 +2941,19 @@ export interface components {
             updated_at: string;
         };
         /**
+         * VendorRef
+         * @description A vendor as it appears inside another record.
+         */
+        VendorRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
          * VendorStatus
          * @enum {string}
          */
@@ -1915,6 +2990,263 @@ export interface components {
             /** Region */
             region?: string | null;
             status?: components["schemas"]["VendorStatus"] | null;
+        };
+        /**
+         * WorkOrderActivityKind
+         * @enum {string}
+         */
+        WorkOrderActivityKind: "comment" | "status_change" | "assignment";
+        /** WorkOrderActivityRead */
+        WorkOrderActivityRead: {
+            /** Author Name */
+            author_name: string;
+            /**
+             * Body
+             * @description The comment, the note given with a status change, or who was assigned.
+             */
+            body: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** @description Set for a status change. */
+            from_status: components["schemas"]["WorkOrderStatus"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["WorkOrderActivityKind"];
+            /** @description Set for a status change. */
+            to_status: components["schemas"]["WorkOrderStatus"] | null;
+        };
+        /**
+         * WorkOrderCategory
+         * @enum {string}
+         */
+        WorkOrderCategory: "cleaning" | "maintenance" | "repair" | "inspection" | "hvac" | "electrical" | "plumbing" | "landscaping" | "security" | "other";
+        /** WorkOrderCommentCreate */
+        WorkOrderCommentCreate: {
+            /** Body */
+            body: string;
+        };
+        /** WorkOrderCreate */
+        WorkOrderCreate: {
+            /** Assigned Employee Id */
+            assigned_employee_id?: string | null;
+            /**
+             * Billable
+             * @default true
+             */
+            billable: boolean;
+            /**
+             * Building Id
+             * Format: uuid
+             */
+            building_id: string;
+            category: components["schemas"]["WorkOrderCategory"];
+            /**
+             * Contract Id
+             * @description It must cover the building.
+             */
+            contract_id?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Due On */
+            due_on?: string | null;
+            /** @default normal */
+            priority: components["schemas"]["WorkOrderPriority"];
+            /** Requested By */
+            requested_by?: string | null;
+            /** Scheduled For */
+            scheduled_for?: string | null;
+            /** @default internal */
+            source: components["schemas"]["WorkOrderSource"];
+            /** Title */
+            title: string;
+            /** Vendor Id */
+            vendor_id?: string | null;
+        };
+        /** WorkOrderDetail */
+        WorkOrderDetail: {
+            /**
+             * Activities
+             * @description Oldest first.
+             */
+            activities: components["schemas"]["WorkOrderActivityRead"][];
+            assigned_employee: components["schemas"]["EmployeeSummary"] | null;
+            /** Billable */
+            billable: boolean;
+            building: components["schemas"]["BuildingRef"];
+            category: components["schemas"]["WorkOrderCategory"];
+            /**
+             * Completed At
+             * @description Set on completion, cleared on reopening.
+             */
+            completed_at: string | null;
+            contract: components["schemas"]["ContractRef"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string | null;
+            /** Due On */
+            due_on: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Is Overdue
+             * @description Due before today, in the organization's time zone, and neither completed nor cancelled.
+             */
+            is_overdue: boolean;
+            /** Number */
+            number: string;
+            priority: components["schemas"]["WorkOrderPriority"];
+            /** Requested By */
+            requested_by: string | null;
+            /** Scheduled For */
+            scheduled_for: string | null;
+            source: components["schemas"]["WorkOrderSource"];
+            /**
+             * Started At
+             * @description Set when work first starts.
+             */
+            started_at: string | null;
+            status: components["schemas"]["WorkOrderStatus"];
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            vendor: components["schemas"]["VendorRef"] | null;
+        };
+        /**
+         * WorkOrderPriority
+         * @enum {string}
+         */
+        WorkOrderPriority: "low" | "normal" | "high" | "urgent";
+        /** WorkOrderRead */
+        WorkOrderRead: {
+            assigned_employee: components["schemas"]["EmployeeSummary"] | null;
+            /** Billable */
+            billable: boolean;
+            building: components["schemas"]["BuildingRef"];
+            category: components["schemas"]["WorkOrderCategory"];
+            /**
+             * Completed At
+             * @description Set on completion, cleared on reopening.
+             */
+            completed_at: string | null;
+            contract: components["schemas"]["ContractRef"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string | null;
+            /** Due On */
+            due_on: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Is Overdue
+             * @description Due before today, in the organization's time zone, and neither completed nor cancelled.
+             */
+            is_overdue: boolean;
+            /** Number */
+            number: string;
+            priority: components["schemas"]["WorkOrderPriority"];
+            /** Requested By */
+            requested_by: string | null;
+            /** Scheduled For */
+            scheduled_for: string | null;
+            source: components["schemas"]["WorkOrderSource"];
+            /**
+             * Started At
+             * @description Set when work first starts.
+             */
+            started_at: string | null;
+            status: components["schemas"]["WorkOrderStatus"];
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            vendor: components["schemas"]["VendorRef"] | null;
+        };
+        /**
+         * WorkOrderRef
+         * @description A work order as it appears inside another record.
+         */
+        WorkOrderRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * WorkOrderSource
+         * @enum {string}
+         */
+        WorkOrderSource: "internal" | "customer_request" | "inspection" | "preventive";
+        /**
+         * WorkOrderStatus
+         * @enum {string}
+         */
+        WorkOrderStatus: "open" | "scheduled" | "in_progress" | "on_hold" | "completed" | "cancelled";
+        /** WorkOrderStatusChange */
+        WorkOrderStatusChange: {
+            /**
+             * Comment
+             * @description Kept with the change in the history.
+             */
+            comment?: string | null;
+            status: components["schemas"]["WorkOrderStatus"];
+        };
+        /** WorkOrderUpdate */
+        WorkOrderUpdate: {
+            /** Assigned Employee Id */
+            assigned_employee_id?: string | null;
+            /** Billable */
+            billable?: boolean | null;
+            /** Building Id */
+            building_id?: string | null;
+            category?: components["schemas"]["WorkOrderCategory"] | null;
+            /** Contract Id */
+            contract_id?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Due On */
+            due_on?: string | null;
+            priority?: components["schemas"]["WorkOrderPriority"] | null;
+            /** Requested By */
+            requested_by?: string | null;
+            /** Scheduled For */
+            scheduled_for?: string | null;
+            source?: components["schemas"]["WorkOrderSource"] | null;
+            /** Title */
+            title?: string | null;
+            /** Vendor Id */
+            vendor_id?: string | null;
         };
     };
     responses: never;
@@ -3803,6 +5135,643 @@ export interface operations {
             };
         };
     };
+    list_expenses: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                status?: components["schemas"]["DecisionStatus"] | null;
+                category?: components["schemas"]["ExpenseCategory"] | null;
+                building_id?: string | null;
+                contract_id?: string | null;
+                vendor_id?: string | null;
+                /** @description Incurred on or after this day. */
+                from?: string | null;
+                /** @description Incurred on or before this day. */
+                to?: string | null;
+                /** @description One of incurred_on, amount, created_at. Prefix with - to reverse. Most recently incurred first when omitted. */
+                sort?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ExpenseRead_"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    create_expense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    read_expense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                expense_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    update_expense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                expense_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    approve_expense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                expense_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    reject_expense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                expense_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Rejection"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    reopen_expense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                expense_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    list_invoices: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                status?: components["schemas"]["InvoiceStatus"] | null;
+                customer_id?: string | null;
+                contract_id?: string | null;
+                /** @description True for issued invoices with a balance past its due date, false for the rest. */
+                overdue?: boolean | null;
+                /** @description Issued on or after this day. */
+                from?: string | null;
+                /** @description Issued on or before this day. */
+                to?: string | null;
+                /** @description One of number, issue_date, due_date, total, balance_due. Prefix with - to reverse. Latest number first when omitted. */
+                sort?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_InvoiceRead_"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    read_invoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceDetail"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     list_job_roles: {
         parameters: {
             query?: {
@@ -4705,6 +6674,990 @@ export interface operations {
             };
         };
     };
+    list_shifts: {
+        parameters: {
+            query: {
+                page?: number;
+                page_size?: number;
+                /** @description Shifts starting on or after this day, in the organization's time zone. */
+                from: string;
+                /** @description Shifts starting on or before this day. At most 62 days, both ends included. */
+                to: string;
+                building_id?: string | null;
+                employee_id?: string | null;
+                status?: components["schemas"]["ShiftStatus"] | null;
+                /** @description starts_at, or -starts_at to reverse. */
+                sort?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ShiftRead_"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    create_shift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShiftCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    read_shift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shift_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    update_shift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shift_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShiftUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    cancel_shift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shift_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    list_timesheets: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                status?: components["schemas"]["DecisionStatus"] | null;
+                building_id?: string | null;
+                employee_id?: string | null;
+                contract_id?: string | null;
+                /** @description Work date on or after this day. */
+                from?: string | null;
+                /** @description Work date on or before this day. */
+                to?: string | null;
+                /** @description One of work_date, employee (last name, first name), created_at. Prefix with - to reverse. Latest work date first when omitted. */
+                sort?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_TimesheetRead_"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    create_timesheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimesheetCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    approve_timesheets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimesheetBulkApproval"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetBulkApproved"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    summarize_timesheets: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["DecisionStatus"] | null;
+                building_id?: string | null;
+                employee_id?: string | null;
+                contract_id?: string | null;
+                /** @description Work date on or after this day. */
+                from?: string | null;
+                /** @description Work date on or before this day. */
+                to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetSummary"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    read_timesheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                timesheet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    update_timesheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                timesheet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimesheetUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    approve_timesheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                timesheet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    reject_timesheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                timesheet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Rejection"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    reopen_timesheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                timesheet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     list_vendors: {
         parameters: {
             query?: {
@@ -5002,6 +7955,436 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VendorRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    list_work_orders: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                /** @description Search number and title. */
+                q?: string | null;
+                /** @description Repeat the parameter to ask for several statuses. */
+                status?: components["schemas"]["WorkOrderStatus"][] | null;
+                priority?: components["schemas"]["WorkOrderPriority"] | null;
+                category?: components["schemas"]["WorkOrderCategory"] | null;
+                building_id?: string | null;
+                assigned_employee_id?: string | null;
+                vendor_id?: string | null;
+                /** @description True for work orders due before today that are neither completed nor cancelled, false for the rest. */
+                overdue?: boolean | null;
+                /** @description One of number, due_on, priority, created_at, status. Prefix with - to reverse. Newest first when omitted. */
+                sort?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_WorkOrderRead_"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    create_work_order: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkOrderCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderDetail"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    read_work_order: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                work_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderDetail"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    update_work_order: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                work_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkOrderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderDetail"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    add_work_order_comment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                work_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkOrderCommentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderActivityRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    change_work_order_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                work_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkOrderStatusChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderDetail"];
                 };
             };
             /** @description Not signed in, or the session has ended */

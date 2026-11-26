@@ -76,6 +76,10 @@ class EmployeeRef(ResponseModel):
     full_name: str
 
 
+class EmployeeSummary(EmployeeRef):
+    employee_number: str
+
+
 class AssignmentRead(ResponseModel):
     id: UUID
     building: BuildingRef

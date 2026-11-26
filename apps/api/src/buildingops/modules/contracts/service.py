@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, and_, func, select
 
 from buildingops.core import crud
 from buildingops.core.context import Context
@@ -210,6 +210,65 @@ def update_contract(ctx: Context, contract_id: UUID, data: ContractUpdate) -> Co
     )
     _set_buildings(ctx, contract, links, covered)
     return get_contract(ctx, contract.id)
+
+
+def check_coverage(
+    ctx: Context,
+    values: Mapping[str, Any],
+    *,
+    building_id: UUID | None = None,
+    contract_id: UUID | None = None,
+) -> None:
+    """A record booked to a contract must be for a building that contract covers.
+
+    `values` is what a request sets on a work order, a timesheet or an expense, and
+    `building_id` and `contract_id` are what the record held before, for an update. Only a
+    pairing the request makes is checked, and it is reported on the field the request
+    changed. What a contract is billed is worked out from the records booked to it, so a
+    cost booked to a contract for some other building would be billed to the wrong customer.
+
+    Whether a building the request names exists is the caller's to check, and to report.
+    """
+    resulting_building_id: UUID | None = values.get("building_id", building_id)
+    resulting_contract_id: UUID | None = values.get("contract_id", contract_id)
+    if resulting_contract_id is None or (
+        (resulting_building_id, resulting_contract_id) == (building_id, contract_id)
+    ):
+        return
+    changes_contract = resulting_contract_id != contract_id
+    if changes_contract:
+        crud.get_referenced(
+            ctx, Contract, resulting_contract_id, field="contract_id", message="Contract not found."
+        )
+    if resulting_building_id is None:
+        return
+    # The building is not asked to be live. A record keeps its building after the building
+    # is archived, and a contract that is not active keeps it on its list too.
+    row = ctx.db.execute(
+        select(Contract.contract_number, Building.name, ContractBuilding.id)
+        .join(Building, Building.organization_id == Contract.organization_id)
+        .outerjoin(
+            ContractBuilding,
+            and_(
+                ContractBuilding.contract_id == Contract.id,
+                ContractBuilding.building_id == Building.id,
+            ),
+        )
+        .where(
+            crud.live(ctx, Contract),
+            Contract.id == resulting_contract_id,
+            Building.id == resulting_building_id,
+        )
+    ).one_or_none()
+    if row is None:
+        return
+    contract_number, building_name, link_id = row
+    if link_id is None:
+        raise ValidationFailedError.for_field(
+            "contract_id" if changes_contract else "building_id",
+            f"Contract {contract_number} does not cover {building_name}.",
+            "contract_does_not_cover_building",
+        )
 
 
 # --- validation --------------------------------------------------------------------------

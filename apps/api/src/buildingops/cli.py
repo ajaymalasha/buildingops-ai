@@ -17,7 +17,7 @@ from buildingops.core.db import Database
 from buildingops.core.errors import ValidationFailedError
 from buildingops.core.security import PasswordService
 from buildingops.modules.identity.models import User
-from buildingops.seed import demo, master_data
+from buildingops.seed import demo, master_data, operations
 
 
 def _passwords(settings: Settings) -> PasswordService:
@@ -43,6 +43,7 @@ def cmd_seed(args: argparse.Namespace) -> int:
         with database.session() as db:
             report = demo.seed_identity(db, _passwords(settings), settings.seed_demo_password)
             directories = master_data.seed_master_data(db)
+            histories = operations.seed_operations(db)
             db.commit()
     finally:
         database.dispose()
@@ -58,6 +59,14 @@ def cmd_seed(args: argparse.Namespace) -> int:
             f"{directory.job_roles} job roles, {directory.employees} employees, "
             f"{directory.assignments} building assignments, "
             f"{directory.contracts} contracts created."
+        )
+    for history in histories:
+        print(
+            f"  {history.organization_slug}: {history.work_orders} work orders, "
+            f"{history.activities} history entries, {history.shifts} shifts, "
+            f"{history.timesheets} timesheets, {history.expenses} expenses, "
+            f"{history.invoices} invoices, {history.invoice_lines} invoice lines, "
+            f"{history.payments} payments created."
         )
     print(f"\nDemo accounts (password: {settings.seed_demo_password})")
     for account in demo.ACCOUNTS:
@@ -125,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
 
     seed = commands.add_parser(
-        "seed", help="Load demo organizations, accounts and their master data"
+        "seed", help="Load demo organizations, accounts, master data and a year of operations"
     )
     seed.add_argument("--allow-production", action="store_true")
     seed.set_defaults(handler=cmd_seed)

@@ -10,7 +10,8 @@ from sqlalchemy import column, select
 
 from buildingops.core.config import Settings
 from buildingops.core.errors import ValidationFailedError
-from buildingops.core.pagination import apply_sort, search_pattern
+from buildingops.core.money import round_money
+from buildingops.core.pagination import apply_sort, between_dates, check_date_range, search_pattern
 from buildingops.core.permissions import (
     MEMBERSHIP_ROLES,
     ROLE_PERMISSIONS,
@@ -149,6 +150,39 @@ def test_whoever_reads_the_audit_log_may_also_see_pay_rates():
             assert Permission.EMPLOYEES_READ_COMPENSATION in granted, role
 
 
+def test_supervisors_run_their_sites_and_managers_keep_spending_and_billing():
+    site = {
+        Permission.WORK_ORDERS_READ,
+        Permission.WORK_ORDERS_WRITE,
+        Permission.SCHEDULE_READ,
+        Permission.SCHEDULE_WRITE,
+        Permission.TIMESHEETS_READ,
+        Permission.TIMESHEETS_WRITE,
+        Permission.TIMESHEETS_APPROVE,
+        Permission.EXPENSES_READ,
+        Permission.EXPENSES_WRITE,
+    }
+    reserved = {Permission.EXPENSES_APPROVE, Permission.INVOICES_READ}
+    held = {role: (site | reserved) & ROLE_PERMISSIONS[role] for role in MEMBERSHIP_ROLES}
+
+    assert held == {
+        Role.COMPANY_ADMIN: site | reserved,
+        Role.OPERATIONS_MANAGER: site | reserved,
+        Role.SUPERVISOR: site,
+        Role.EMPLOYEE: set(),
+        Role.CUSTOMER: set(),
+        Role.VENDOR: set(),
+    }
+
+
+def test_whoever_sees_invoices_may_also_see_pay_rates_and_contracts():
+    """An invoice shows what labor cost and what a contract adds to it."""
+    for role in MEMBERSHIP_ROLES:
+        granted = ROLE_PERMISSIONS[role]
+        if Permission.INVOICES_READ in granted:
+            assert {Permission.EMPLOYEES_READ_COMPENSATION, Permission.CONTRACTS_READ} <= granted
+
+
 def test_platform_permissions_never_come_from_a_membership_role():
     for role in MEMBERSHIP_ROLES:
         assert Permission.PLATFORM_ORGANIZATIONS not in permissions_for(
@@ -192,6 +226,38 @@ def test_a_sort_field_can_stand_for_several_columns():
     assert "ORDER BY last_name DESC NULLS LAST, first_name DESC NULLS LAST, id" in str(ordered)
 
 
+def test_a_date_range_includes_both_ends_and_either_can_be_left_open():
+    statement = select(column("day"))
+
+    both = between_dates(statement, column("day"), date(2026, 3, 1), date(2026, 3, 31))
+    from_only = between_dates(statement, column("day"), date(2026, 3, 1), None)
+    neither = between_dates(statement, column("day"), None, None)
+
+    assert "WHERE day >= :day_1 AND day <= :day_2" in str(both)
+    assert str(from_only).endswith("WHERE day >= :day_1")
+    assert "WHERE" not in str(neither)
+
+
+def test_a_date_range_must_run_forwards_and_can_be_limited_in_length():
+    check_date_range(date(2026, 3, 1), date(2026, 3, 1))
+    check_date_range(date(2026, 3, 1), date(2026, 3, 31), max_days=31)
+    check_date_range(None, date(2026, 3, 1), max_days=1)
+
+    with pytest.raises(ValidationFailedError) as backwards:
+        check_date_range(date(2026, 3, 2), date(2026, 3, 1))
+    with pytest.raises(ValidationFailedError) as too_long:
+        check_date_range(date(2026, 3, 1), date(2026, 4, 1), max_days=31)
+
+    assert (backwards.value.errors[0].field, backwards.value.errors[0].code) == (
+        "to",
+        "invalid_range",
+    )
+    assert (too_long.value.errors[0].field, too_long.value.errors[0].code) == (
+        "to",
+        "range_too_long",
+    )
+
+
 # --- request field types -----------------------------------------------------------------
 
 
@@ -222,6 +288,34 @@ def test_a_country_is_two_letters(country: str):
 def test_amounts_keep_two_decimal_places():
     assert str(two_decimal_places(Decimal("18.5"))) == "18.50"
     assert str(two_decimal_places(Decimal("18"))) == "18.00"
+
+
+# --- money -------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("amount", "rounded"),
+    [
+        ("2.344", "2.34"),
+        ("2.345", "2.35"),  # half a cent goes up
+        ("2.355", "2.36"),  # whichever digit comes before it: this is not banker's rounding
+        ("2.3449999", "2.34"),
+        ("0.005", "0.01"),
+        ("0.0049", "0.00"),
+        ("1", "1.00"),
+        ("1234567890.125", "1234567890.13"),
+        # Away from zero, so that a credit rounds like the charge it reverses.
+        ("-2.345", "-2.35"),
+    ],
+)
+def test_money_is_rounded_half_up_to_cents(amount: str, rounded: str):
+    assert str(round_money(Decimal(amount))) == rounded
+
+
+def test_rounding_money_never_goes_through_a_float():
+    # As floats, 0.1 + 0.2 is 0.30000000000000004 and 1.005 is a little less than 1.005.
+    assert round_money(Decimal("0.1") + Decimal("0.2")) == Decimal("0.30")
+    assert str(round_money(Decimal("1.005"))) == "1.01"
 
 
 # --- audit helpers -----------------------------------------------------------------------

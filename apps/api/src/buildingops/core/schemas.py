@@ -1,10 +1,12 @@
 """Base classes and field types for API request and response models."""
 
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Annotated, Any, Self
 
 from pydantic import (
     AfterValidator,
+    AwareDatetime,
     BaseModel,
     BeforeValidator,
     ConfigDict,
@@ -53,6 +55,10 @@ def two_decimal_places(value: Decimal) -> Decimal:
     return value.quantize(Decimal("0.01"))
 
 
+def _in_utc(value: datetime) -> datetime:
+    return value.astimezone(UTC)
+
+
 # A form sends "" for an input left empty. On an optional field that means "no value", and
 # it is stored as NULL so that "has a value" stays a simple question to ask of the data.
 BlankAsNone = BeforeValidator(_blank_as_none)
@@ -79,3 +85,6 @@ CountryCode = Annotated[
     AfterValidator(_country_code),
 ]
 PaymentTermsDays = Annotated[int, Field(ge=0, le=180)]
+# A point in time. It has to say which zone it is in, and is kept in UTC, which is how the
+# database returns it: a record reads the same when it is saved as when it is read back.
+Moment = Annotated[AwareDatetime, AfterValidator(_in_utc)]

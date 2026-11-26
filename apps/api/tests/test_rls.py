@@ -6,6 +6,8 @@ could not read or write another organization's rows.
 """
 
 import uuid
+from datetime import date
+from decimal import Decimal
 
 import pytest
 from sqlalchemy import func, select, text, update
@@ -18,11 +20,16 @@ from buildingops.modules.audit.models import AuditLog
 from buildingops.modules.buildings.models import Building
 from buildingops.modules.contracts.models import Contract, ContractBuilding
 from buildingops.modules.customers.models import Customer
+from buildingops.modules.expenses.models import Expense, ExpenseCategory
 from buildingops.modules.identity.models import Membership, MembershipStatus, Organization
+from buildingops.modules.invoicing.models import Invoice, InvoiceLine, Payment
+from buildingops.modules.scheduling.models import Shift
 from buildingops.modules.sequences import service as sequences
 from buildingops.modules.sequences.models import OrganizationSequence
+from buildingops.modules.timesheets.models import Timesheet
 from buildingops.modules.vendors.models import Vendor
 from buildingops.modules.workforce.models import BuildingAssignment, Employee, JobRole
+from buildingops.modules.workorders.models import WorkOrder, WorkOrderActivity
 from tests.conftest import Factory, make_settings
 
 
@@ -206,9 +213,9 @@ def test_the_app_role_cannot_change_audit_entries(app_database: Database, two_or
     assert result.rowcount == 0  # no UPDATE policy: the rows are not even candidates
 
 
-# --- master data -------------------------------------------------------------------------
+# --- master data and operational records -------------------------------------------------
 
-MASTER_DATA = (
+TENANT_RECORDS = (
     OrganizationSequence,
     Customer,
     Building,
@@ -218,53 +225,87 @@ MASTER_DATA = (
     BuildingAssignment,
     Contract,
     ContractBuilding,
+    WorkOrder,
+    WorkOrderActivity,
+    Shift,
+    Timesheet,
+    Expense,
+    Invoice,
+    InvoiceLine,
+    Payment,
 )
 
 
 @pytest.fixture
 def two_directories(factory: Factory, admin_database: Database):
-    """Two organizations with at least one row each in every master-data table."""
+    """Two organizations with at least one row each in every one of those tables."""
     alpha, bravo = factory.organization(), factory.organization()
     for organization in (alpha, bravo):
         customer = factory.customer(organization)
         building = factory.building(organization, customer)
-        factory.assignment(factory.employee(organization), building)
+        employee = factory.employee(organization)
+        factory.assignment(employee, building)
         factory.contract(organization, customer, buildings=[building])
         factory.vendor(organization)
+        factory.work_order_activity(factory.work_order(organization, building))
+        factory.shift(employee, building)
+        factory.timesheet(employee, building)
+        factory.expense(organization)
+        factory.invoice(organization, customer, lines=[{}], payments=[{"amount": Decimal("10.00")}])
         with admin_database.session() as db:
             sequences.allocate_code(db, organization.id, "customer", "CUS")
             db.commit()
     return alpha, bravo
 
 
-def test_master_data_is_visible_only_inside_its_organization(
+def test_tenant_records_are_visible_only_inside_their_organization(
     app_database: Database, two_directories
 ):
     alpha, _ = two_directories
 
     with app_database.session(DbContext(organization_id=alpha.id)) as db:
-        for model in MASTER_DATA:
+        for model in TENANT_RECORDS:
             assert set(db.scalars(select(model.organization_id))) == {alpha.id}, model
 
     # Without an organization there is nothing to see, platform administrator or not.
     for outside in (DbContext(), DbContext(platform_admin=True)):
         with app_database.session(outside) as db:
-            for model in MASTER_DATA:
+            for model in TENANT_RECORDS:
                 assert db.scalar(select(func.count()).select_from(model)) == 0, model
 
 
-def test_master_data_of_another_organization_cannot_be_written(
+def test_tenant_records_of_another_organization_cannot_be_written(
     app_database: Database, two_directories
 ):
     alpha, bravo = two_directories
 
     with app_database.session(DbContext(organization_id=alpha.id)) as db:
-        for model in MASTER_DATA:
+        for model in TENANT_RECORDS:
             touched = db.execute(
                 update(model).where(model.organization_id == bravo.id).values(updated_at=func.now())
             )
             assert touched.rowcount == 0, model
 
         db.add(Customer(organization_id=bravo.id, name="Planted", code="PLANTED"))
+        with pytest.raises(ProgrammingError, match="row-level security"):
+            db.flush()
+
+
+def test_an_operational_record_cannot_be_planted_in_another_organization(
+    app_database: Database, two_directories
+):
+    alpha, bravo = two_directories
+
+    with app_database.session(DbContext(organization_id=alpha.id)) as db:
+        db.add(
+            Expense(
+                organization_id=bravo.id,
+                category=ExpenseCategory.OTHER,
+                description="Planted",
+                amount=Decimal("1.00"),
+                currency="USD",
+                incurred_on=date(2026, 3, 2),
+            )
+        )
         with pytest.raises(ProgrammingError, match="row-level security"):
             db.flush()

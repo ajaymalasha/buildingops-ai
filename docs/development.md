@@ -11,9 +11,12 @@
    `buildingops_test` databases. It needs a superuser: by default your operating-system
    user on a local server. Override with the standard `PGHOST`, `PGUSER`, `PGPASSWORD`.
 4. `make migrate` applies migrations as the owner role and grants the app role data access.
-5. `make seed` loads the demo organizations and accounts, and gives each organization its
-   master data: customers, buildings, vendors, employees and contracts. It is safe to run
-   again: an organization that already has customers is left as it is.
+5. `make seed` loads the demo organizations and accounts, gives each organization its
+   master data (customers, buildings, vendors, employees and contracts), and then a year
+   of work on top of it: timesheets, shifts, work orders, expenses, invoices and payments,
+   dated relative to the day it runs. It is safe to run again: an organization that
+   already has customers keeps its master data, and one that already has work orders
+   keeps its year of work.
 
 ## Conventions
 
@@ -32,14 +35,33 @@
   field-level diff from `audit.changes_between`.
 - Raise the errors in `core/errors.py`. They become problem documents with stable codes.
 - Money is `Decimal` in Python and `NUMERIC` in the database. It is never a float.
+  Arithmetic that can leave more than two decimal places ends with
+  `core.money.round_money`, which rounds half up to cents, and nothing else rounds money.
+  An amount worked out by the API, such as a timesheet's labor cost, is never accepted
+  from a client.
+- A time in a request is a `Moment` (`core/schemas.py`): it must carry its UTC offset and
+  is kept in UTC. A day that depends on where the organization is, such as "today", comes
+  from `organizations_service.today`.
 - A service for a tenant-owned record builds on `core/crud.py`. Look a record up with
   `get_or_404` when the path names it and with `get_referenced` when the body does, lock it
   (`for_update=True`) before checking what depends on it, and let `create`, `update` and
   `archive` write the audit entry. `modules/customers` is a short, complete example.
+- Operational records build on the same helpers, and three more. A change with a name of
+  its own (an approval, a cancellation, a status move) goes through `crud.transition`,
+  which records `<entity>.<action>`. On an update, check a reference with
+  `crud.new_reference`, which leaves alone one the record already has, and read a row a
+  record already points at with `crud.get_held`: either may have been archived since, and
+  the record keeps it. A record that waits for approval uses `DecisionMixin` and
+  `core/decisions.py`. `modules/expenses` is the short example, `modules/timesheets` the
+  full one.
+- A list of dated records filters with `from` and `to` through
+  `pagination.between_dates`.
 
 ### Adding a tenant table
 
-1. Define the model with `TenantMixin`. Reference other tenant tables with `tenant_fk`.
+1. Define the model with `TenantMixin`. Reference other tenant tables with `tenant_fk`. If
+   the name that gives a foreign key would be longer than the 63 characters PostgreSQL
+   keeps, pass `tenant_fk` a shorter `name`.
 2. Register the module's models in `src/buildingops/models.py`.
 3. `uv run alembic revision --autogenerate -m "..." --rev-id NNNN`
 4. In the migration, enable row-level security for the table. Copy the policy statements
@@ -56,8 +78,13 @@
 5. Run the tests. `test_schema_invariants.py` fails if the policy or the composite key is
    missing, or if the models and migrations disagree. Every migration is also run down and
    up again, so write the downgrade.
-6. That comparison does not see CHECK constraints or the condition of a partial index.
-   Give each one a case that breaks it, as `test_master_data_constraints.py` does.
+6. That comparison does not see CHECK constraints, exclusion constraints or the condition
+   of a partial index. Autogenerate writes them out for a new table and never notices
+   one that is added or changed later, so read what it wrote, and give each one a case
+   that breaks it, as `test_master_data_constraints.py` and
+   `test_operational_constraints.py` do. An exclusion constraint is declared on the model
+   (`sqlalchemy.dialects.postgresql.ExcludeConstraint`), and the extension it needs is
+   created by hand in the migration: see `0003_operational_records.py`.
 
 ### Web (`apps/web`)
 

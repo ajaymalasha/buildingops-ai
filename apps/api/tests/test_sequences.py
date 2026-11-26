@@ -28,6 +28,25 @@ def test_each_sequence_counts_on_its_own(app_database: Database, make_actor: Act
     assert (first_building, wide, other_organization) == ("BLD-0001", "TKT-000001", "CUS-0001")
 
 
+def test_a_run_of_codes_is_taken_in_one_step(app_database: Database, make_actor: ActorFactory):
+    actor = make_actor()
+    organization_id = actor.organization.id
+
+    with app_database.session(_context(actor)) as db:
+        first_run = sequences.allocate_codes(db, organization_id, "work_order", "WO", count=3)
+        single = sequences.next_code(actor.service_context(db), "work_order", "WO")
+        second_run = sequences.allocate_codes(
+            db, organization_id, "work_order", "WO", count=2, width=6
+        )
+        nothing = sequences.allocate_codes(db, organization_id, "work_order", "WO", count=0)
+        after = sequences.next_code(actor.service_context(db), "work_order", "WO")
+
+    assert first_run == ["WO-0001", "WO-0002", "WO-0003"]
+    assert single == "WO-0004"
+    assert second_run == ["WO-000005", "WO-000006"]
+    assert (nothing, after) == ([], "WO-0007")
+
+
 def test_a_number_goes_back_when_its_transaction_rolls_back(
     app_database: Database, make_actor: ActorFactory
 ):

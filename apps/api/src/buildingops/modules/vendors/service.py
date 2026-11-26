@@ -77,6 +77,7 @@ def update_vendor(ctx: Context, vendor_id: UUID, data: VendorUpdate) -> VendorRe
 
 
 def archive_vendor(ctx: Context, vendor_id: UUID) -> None:
-    # No other record refers to a vendor yet, so nothing can stand in the way.
+    # Work orders and expenses name vendors, and go on naming one after it is archived.
+    # They are history rather than dependants, so nothing can stand in the way.
     vendor = crud.get_or_404(ctx, Vendor, vendor_id, label="Vendor")
     crud.archive(ctx, vendor, entity_type="vendor", summary=f"Archived vendor {_label(vendor)}")

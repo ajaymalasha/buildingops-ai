@@ -10,9 +10,10 @@ and users with unique names and emails, so nothing has to be cleaned up afterwar
 
 import os
 import uuid
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -29,12 +30,14 @@ from sqlalchemy.orm import Session
 from buildingops.core.config import Settings
 from buildingops.core.context import Context, Principal
 from buildingops.core.db import Database
+from buildingops.core.models import DecisionStatus, utcnow
 from buildingops.core.permissions import Role, permissions_for
 from buildingops.core.security import PasswordService
 from buildingops.main import create_app
 from buildingops.modules.buildings.models import Building, BuildingType
 from buildingops.modules.contracts.models import BillingModel, Contract, ContractBuilding
 from buildingops.modules.customers.models import Customer
+from buildingops.modules.expenses.models import Expense, ExpenseCategory
 from buildingops.modules.identity.models import (
     Membership,
     MembershipStatus,
@@ -42,12 +45,28 @@ from buildingops.modules.identity.models import (
     OrganizationStatus,
     User,
 )
+from buildingops.modules.invoicing.models import (
+    Invoice,
+    InvoiceLine,
+    InvoiceLineKind,
+    Payment,
+    PaymentMethod,
+)
+from buildingops.modules.scheduling.models import Shift
+from buildingops.modules.timesheets.costing import labor_cost
+from buildingops.modules.timesheets.models import Timesheet
 from buildingops.modules.vendors.models import Vendor, VendorCategory
 from buildingops.modules.workforce.models import (
     BuildingAssignment,
     Employee,
     EmploymentType,
     JobRole,
+)
+from buildingops.modules.workorders.models import (
+    WorkOrder,
+    WorkOrderActivity,
+    WorkOrderActivityKind,
+    WorkOrderCategory,
 )
 
 API_ROOT = Path(__file__).resolve().parents[1]
@@ -152,6 +171,14 @@ def client(app: FastAPI) -> Iterator[TestClient]:
 
 def _suffix() -> str:
     return uuid.uuid4().hex[:10].upper()
+
+
+def _decided(fields: dict[str, Any]) -> dict[str, Any]:
+    """`fields` for a timesheet or an expense, with the time of the decision filled in when
+    they give a status other than pending: the table requires one."""
+    if fields.get("status", DecisionStatus.PENDING) is DecisionStatus.PENDING:
+        return fields
+    return {"decided_at": utcnow(), "decided_by_name": "Test Approver", **fields}
 
 
 class Factory:
@@ -315,6 +342,186 @@ class Factory:
                 )
             )
         return contract
+
+    # Operational records, built the same way. Numbers are random for the same reason
+    # codes are. A row that hangs off another belongs to that one's organization unless
+    # `organization` says otherwise, which only a test of the foreign keys has reason to.
+
+    def work_order(
+        self, organization: Organization, building: Building | None = None, **fields: Any
+    ) -> WorkOrder:
+        suffix = _suffix()
+        values = {
+            "number": f"W-{suffix}",
+            "title": f"Work order {suffix}",
+            "category": WorkOrderCategory.MAINTENANCE,
+            **fields,
+        }
+        building = building or self.building(organization)
+        return self._save(
+            WorkOrder(organization_id=organization.id, building_id=building.id, **values)
+        )
+
+    def work_order_activity(
+        self, work_order: WorkOrder, *, organization: Organization | None = None, **fields: Any
+    ) -> WorkOrderActivity:
+        values = {
+            "kind": WorkOrderActivityKind.COMMENT,
+            "body": "Checked on site.",
+            "author_name": "Test Author",
+            **fields,
+        }
+        return self._save(
+            WorkOrderActivity(
+                organization_id=organization.id if organization else work_order.organization_id,
+                work_order_id=work_order.id,
+                **values,
+            )
+        )
+
+    def shift(
+        self,
+        employee: Employee,
+        building: Building,
+        *,
+        organization: Organization | None = None,
+        **fields: Any,
+    ) -> Shift:
+        """Eight hours on 2 March 2026, from 14:00 UTC, unless told otherwise."""
+        values = {
+            "starts_at": datetime(2026, 3, 2, 14, tzinfo=UTC),
+            "ends_at": datetime(2026, 3, 2, 22, tzinfo=UTC),
+            **fields,
+        }
+        return self._save(
+            Shift(
+                organization_id=organization.id if organization else employee.organization_id,
+                employee_id=employee.id,
+                building_id=building.id,
+                **values,
+            )
+        )
+
+    def timesheet(
+        self,
+        employee: Employee,
+        building: Building,
+        *,
+        organization: Organization | None = None,
+        **fields: Any,
+    ) -> Timesheet:
+        """Eight hours at 20.00 an hour on 2 March 2026, costed like any other, unless told
+        otherwise."""
+        values = {
+            "work_date": date(2026, 3, 2),
+            "hours_regular": Decimal("8.00"),
+            "hours_overtime": Decimal("0.00"),
+            "hourly_rate": Decimal("20.00"),
+            "overtime_multiplier": Decimal("1.50"),
+            **_decided(fields),
+        }
+        values.setdefault(
+            "labor_cost",
+            labor_cost(
+                values["hours_regular"],
+                values["hours_overtime"],
+                values["hourly_rate"],
+                values["overtime_multiplier"],
+            ),
+        )
+        return self._save(
+            Timesheet(
+                organization_id=organization.id if organization else employee.organization_id,
+                employee_id=employee.id,
+                building_id=building.id,
+                **values,
+            )
+        )
+
+    def expense(self, organization: Organization, **fields: Any) -> Expense:
+        values = {
+            "category": ExpenseCategory.SUPPLIES,
+            "description": f"Expense {_suffix()}",
+            "amount": Decimal("125.00"),
+            "currency": "USD",
+            "incurred_on": date(2026, 3, 2),
+            **_decided(fields),
+        }
+        return self._save(Expense(organization_id=organization.id, **values))
+
+    def invoice(
+        self,
+        organization: Organization,
+        customer: Customer | None = None,
+        *,
+        lines: Sequence[Mapping[str, Any]] = (),
+        payments: Sequence[Mapping[str, Any]] = (),
+        **fields: Any,
+    ) -> Invoice:
+        """A draft for February 2026 with a total of 1,000.00 unless told otherwise. The
+        total is added up from its parts, and each payment counts towards `amount_paid`."""
+        values = {
+            "number": f"I-{_suffix()}",
+            "period_start": date(2026, 2, 1),
+            "period_end": date(2026, 2, 28),
+            "subtotal": Decimal("1000.00"),
+            "markup_amount": Decimal("0.00"),
+            "tax_amount": Decimal("0.00"),
+            "currency": "USD",
+            **fields,
+        }
+        values.setdefault(
+            "total", values["subtotal"] + values["markup_amount"] + values["tax_amount"]
+        )
+        values.setdefault(
+            "amount_paid", sum((payment["amount"] for payment in payments), Decimal("0.00"))
+        )
+        customer = customer or self.customer(organization)
+        invoice = self._save(
+            Invoice(organization_id=organization.id, customer_id=customer.id, **values)
+        )
+        for position, line in enumerate(lines, start=1):
+            self.invoice_line(invoice, **{"position": position, **line})
+        for payment in payments:
+            self.payment(invoice, **payment)
+        return invoice
+
+    def invoice_line(
+        self, invoice: Invoice, *, organization: Organization | None = None, **fields: Any
+    ) -> InvoiceLine:
+        values = {
+            "position": 1,
+            "kind": InvoiceLineKind.LABOR,
+            "description": "Labor",
+            "quantity": Decimal("1.00"),
+            "unit_price": Decimal("1000.00"),
+            "amount": Decimal("1000.00"),
+            **fields,
+        }
+        return self._save(
+            InvoiceLine(
+                organization_id=organization.id if organization else invoice.organization_id,
+                invoice_id=invoice.id,
+                **values,
+            )
+        )
+
+    def payment(
+        self, invoice: Invoice, *, organization: Organization | None = None, **fields: Any
+    ) -> Payment:
+        values = {
+            "amount": Decimal("100.00"),
+            "received_on": date(2026, 3, 20),
+            "method": PaymentMethod.ACH,
+            **fields,
+        }
+        return self._save(
+            Payment(
+                organization_id=organization.id if organization else invoice.organization_id,
+                invoice_id=invoice.id,
+                **values,
+            )
+        )
 
     def _save[M](self, instance: M) -> M:
         with self._database.session() as db:
