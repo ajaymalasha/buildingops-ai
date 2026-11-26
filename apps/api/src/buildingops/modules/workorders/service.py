@@ -91,9 +91,12 @@ _SORTABLE: dict[str, SortKey] = {
 }
 
 
-def _overdue(today: date) -> ColumnElement[bool]:
+def overdue(today: date) -> ColumnElement[bool]:
     """Due before `today` and still open in some way. Never null, so it can be negated: a
-    work order with no due date is simply not overdue."""
+    work order with no due date is simply not overdue.
+
+    The dashboard counts overdue work orders with this same condition, so its count is
+    the list's."""
     return and_(
         WorkOrder.due_on.is_not(None),
         WorkOrder.due_on < today,
@@ -110,7 +113,7 @@ def _work_orders(
     vendor it was for after they are archived.
     """
     return (
-        select(WorkOrder, Building, Contract, Employee, Vendor, _overdue(today).label("is_overdue"))
+        select(WorkOrder, Building, Contract, Employee, Vendor, overdue(today).label("is_overdue"))
         .join(Building, Building.id == WorkOrder.building_id)
         .outerjoin(Contract, Contract.id == WorkOrder.contract_id)
         .outerjoin(Employee, Employee.id == WorkOrder.assigned_employee_id)
@@ -161,7 +164,7 @@ def list_work_orders(ctx: Context, filters: WorkOrderFilters) -> tuple[list[Work
     if filters.vendor_id:
         statement = statement.where(WorkOrder.vendor_id == filters.vendor_id)
     if filters.overdue is not None:
-        statement = statement.where(_overdue(today) if filters.overdue else not_(_overdue(today)))
+        statement = statement.where(overdue(today) if filters.overdue else not_(overdue(today)))
     statement = crud.search(statement, filters.q, WorkOrder.number, WorkOrder.title)
     statement = apply_sort(
         statement, filters.sort, allowed=_SORTABLE, default="-created_at", tiebreaker=WorkOrder.id

@@ -225,6 +225,106 @@ export interface paths {
         patch: operations["update_customer"];
         trace?: never;
     };
+    "/api/v1/dashboard/buildings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What each building cost, and the work at it
+         * @description A period is a run of calendar days where the organization is, from `from` to `to`, both included, and at most three years long. The 50 costliest buildings, costliest first.
+         */
+        get: operations["read_dashboard_buildings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboard/contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What each contract earned and cost
+         * @description A period is a run of calendar days where the organization is, from `from` to `to`, both included, and at most three years long. Invoices, time and expenses that name no contract are reported together on a line of their own, so that the lines come to the organization's totals.
+         */
+        get: operations["read_dashboard_contracts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboard/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What the business earned, spent and is waiting on
+         * @description A period is a run of calendar days where the organization is, from `from` to `to`, both included, and at most three years long. Revenue, costs, margin, collections and completed work orders are for the period, each beside the same figure for the period of equal length just before it. Outstanding and overdue invoices, pending approvals, open and overdue work orders and the counts of buildings, employees and vendors are as of today.
+         */
+        get: operations["read_dashboard_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboard/trends": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Revenue, costs and work orders, month by month
+         * @description The last `months` calendar months, oldest first, ending with the month still running. That one is flagged, and stops at today.
+         */
+        get: operations["read_dashboard_trends"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboard/work-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Work orders by status today, and those raised in a period
+         * @description A period is a run of calendar days where the organization is, from `from` to `to`, both included, and at most three years long. The counts by status are of every work order as it stands today. The counts by category and by priority are of the work orders raised in the period.
+         */
+        get: operations["read_dashboard_work_orders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/employees": {
         parameters: {
             query?: never;
@@ -1003,6 +1103,32 @@ export interface components {
          * @enum {string}
          */
         BillingModel: "cost_plus" | "fixed_fee" | "time_and_materials";
+        /** BuildingCost */
+        BuildingCost: {
+            building: components["schemas"]["BuildingSummary"];
+            customer: components["schemas"]["CustomerSummary"];
+            /** Expense Cost */
+            expense_cost: string;
+            /** Labor Cost */
+            labor_cost: string;
+            /**
+             * Labor Hours
+             * @description Approved regular and overtime hours.
+             */
+            labor_hours: string;
+            /** Operating Cost */
+            operating_cost: string;
+            /**
+             * Work Orders Completed
+             * @description In the period.
+             */
+            work_orders_completed: number;
+            /**
+             * Work Orders Open
+             * @description As of today.
+             */
+            work_orders_open: number;
+        };
         /** BuildingCreate */
         BuildingCreate: {
             /** Address Line1 */
@@ -1149,6 +1275,12 @@ export interface components {
             square_feet?: number | null;
             status?: components["schemas"]["BuildingStatus"] | null;
         };
+        /** CategoryCount */
+        CategoryCount: {
+            category: components["schemas"]["WorkOrderCategory"];
+            /** Count */
+            count: number;
+        };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             /** Current Password */
@@ -1264,6 +1396,27 @@ export interface components {
              */
             updated_at: string;
         };
+        /** ContractProfit */
+        ContractProfit: {
+            billing_model: components["schemas"]["BillingModel"];
+            contract: components["schemas"]["ContractRef"];
+            customer: components["schemas"]["CustomerSummary"];
+            /** Expense Cost */
+            expense_cost: string;
+            /** Labor Cost */
+            labor_cost: string;
+            /** Margin */
+            margin: string;
+            /**
+             * Margin Percent
+             * @description Null when there is no revenue.
+             */
+            margin_percent: string | null;
+            /** Operating Cost */
+            operating_cost: string;
+            /** Revenue */
+            revenue: string;
+        };
         /** ContractRead */
         ContractRead: {
             billing_model: components["schemas"]["BillingModel"];
@@ -1357,6 +1510,35 @@ export interface components {
             /** Start Date */
             start_date?: string | null;
             status?: components["schemas"]["ContractStatus"] | null;
+        };
+        /** CostShare */
+        CostShare: {
+            /** Amount */
+            amount: string;
+            /** Category */
+            category: "labor" | components["schemas"]["ExpenseCategory"];
+            /**
+             * Share Percent
+             * @description Of operating cost. Null when nothing was spent.
+             */
+            share_percent: string | null;
+        };
+        /**
+         * CountFigure
+         * @description A count for the period, beside the same count for the period before it.
+         */
+        CountFigure: {
+            /** Change */
+            change: number;
+            /**
+             * Change Percent
+             * @description Null when `previous` is zero.
+             */
+            change_percent: string | null;
+            /** Previous */
+            previous: number;
+            /** Value */
+            value: number;
         };
         /** CustomerCreate */
         CustomerCreate: {
@@ -1497,6 +1679,129 @@ export interface components {
             /** Region */
             region?: string | null;
             status?: components["schemas"]["CustomerStatus"] | null;
+        };
+        /** DashboardBuildings */
+        DashboardBuildings: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Buildings
+             * @description Buildings with costs, hours or work orders to show, costliest first. At most 50.
+             */
+            buildings: components["schemas"]["BuildingCost"][];
+            /** Currency */
+            currency: string;
+            period: components["schemas"]["PeriodRead"];
+        };
+        /** DashboardContracts */
+        DashboardContracts: {
+            /**
+             * Contracts
+             * @description Contracts with revenue or costs in the period, largest margin first.
+             */
+            contracts: components["schemas"]["ContractProfit"][];
+            /** Currency */
+            currency: string;
+            period: components["schemas"]["PeriodRead"];
+            /** @description Every line above together. They come to the summary's figures for the same period and customer. */
+            totals: components["schemas"]["ProfitLine"];
+            /** @description Invoices, time and expenses in the period that name no contract. */
+            unattributed: components["schemas"]["ProfitLine"];
+        };
+        /** DashboardSummary */
+        DashboardSummary: {
+            /**
+             * As Of
+             * Format: date
+             * @description Today, where the organization is.
+             */
+            as_of: string;
+            buildings: components["schemas"]["RecordCount"];
+            /** @description Payments, by the day they were received. */
+            collected: components["schemas"]["MoneyFigure"];
+            /**
+             * Cost By Category
+             * @description Operating cost for the period: labor, then each kind of expense.
+             */
+            cost_by_category: components["schemas"]["CostShare"][];
+            /** Currency */
+            currency: string;
+            employees: components["schemas"]["RecordCount"];
+            /** @description Amounts of approved expenses, by the day incurred. */
+            expense_cost: components["schemas"]["MoneyFigure"];
+            expenses_pending: components["schemas"]["PendingSpending"];
+            /** @description Issued, with a balance due. */
+            invoices_outstanding: components["schemas"]["InvoicesOwed"];
+            /** @description Those of the outstanding invoices that were due before today. */
+            invoices_overdue: components["schemas"]["InvoicesOwed"];
+            /** @description Labor cost of approved timesheets, by the day worked. */
+            labor_cost: components["schemas"]["MoneyFigure"];
+            /** @description Revenue less operating cost. */
+            margin: components["schemas"]["MoneyFigure"];
+            /** @description Margin as a percentage of revenue. */
+            margin_percent: components["schemas"]["RateFigure"];
+            /** @description Labor cost and expense cost together. */
+            operating_cost: components["schemas"]["MoneyFigure"];
+            period: components["schemas"]["PeriodRead"];
+            /** @description The period of the same length that ends the day before `period` starts. */
+            previous_period: components["schemas"]["PeriodRead"];
+            /** @description Totals of invoices that are issued or paid, by the day they were issued. */
+            revenue: components["schemas"]["MoneyFigure"];
+            scope: components["schemas"]["SummaryScope"];
+            timesheets_pending: components["schemas"]["PendingTime"];
+            vendors: components["schemas"]["RecordCount"];
+            work_orders_completed: components["schemas"]["CountFigure"];
+            /**
+             * Work Orders Open
+             * @description Open, scheduled, in progress or on hold.
+             */
+            work_orders_open: number;
+            /**
+             * Work Orders Overdue
+             * @description Those of the open ones due before today.
+             */
+            work_orders_overdue: number;
+        };
+        /** DashboardTrends */
+        DashboardTrends: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Months
+             * @description Oldest first.
+             */
+            months: components["schemas"]["MonthTrend"][];
+        };
+        /** DashboardWorkOrders */
+        DashboardWorkOrders: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * By Status
+             * @description Every work order as it stands today, whatever the period.
+             */
+            by_status: components["schemas"]["StatusCount"][];
+            /**
+             * Opened
+             * @description Raised in the period.
+             */
+            opened: number;
+            /** Opened By Category */
+            opened_by_category: components["schemas"]["CategoryCount"][];
+            /** Opened By Priority */
+            opened_by_priority: components["schemas"]["PriorityCount"][];
+            period: components["schemas"]["PeriodRead"];
         };
         /**
          * DecisionStatus
@@ -2013,6 +2318,16 @@ export interface components {
          * @enum {string}
          */
         InvoiceStatus: "draft" | "issued" | "paid" | "void";
+        /** InvoicesOwed */
+        InvoicesOwed: {
+            /**
+             * Amount
+             * @description What is still owed on them.
+             */
+            amount: string;
+            /** Count */
+            count: number;
+        };
         /** JobRoleCreate */
         JobRoleCreate: {
             /** Default Hourly Rate */
@@ -2221,6 +2536,62 @@ export interface components {
         MembershipSummary: {
             organization: components["schemas"]["OrganizationSummary"];
             role: components["schemas"]["Role"];
+        };
+        /**
+         * MoneyFigure
+         * @description An amount for the period, beside the same amount for the period before it.
+         */
+        MoneyFigure: {
+            /**
+             * Change
+             * @description `value` less `previous`.
+             */
+            change: string;
+            /**
+             * Change Percent
+             * @description The change as a percentage of the size of `previous`. Null when `previous` is zero.
+             */
+            change_percent: string | null;
+            /** Previous */
+            previous: string;
+            /** Value */
+            value: string;
+        };
+        /** MonthTrend */
+        MonthTrend: {
+            /**
+             * End
+             * Format: date
+             * @description The last day counted: today, for the month still running.
+             */
+            end: string;
+            /** Expense Cost */
+            expense_cost: string;
+            /**
+             * Is Partial
+             * @description True for the month still running.
+             */
+            is_partial: boolean;
+            /** Labor Cost */
+            labor_cost: string;
+            /** Margin */
+            margin: string;
+            /** Margin Percent */
+            margin_percent: string | null;
+            /**
+             * Month
+             * Format: date
+             * @description Its first day.
+             */
+            month: string;
+            /** Operating Cost */
+            operating_cost: string;
+            /** Revenue */
+            revenue: string;
+            /** Work Orders Completed */
+            work_orders_completed: number;
+            /** Work Orders Opened */
+            work_orders_opened: number;
         };
         /** OrganizationCreate */
         OrganizationCreate: {
@@ -2494,11 +2865,46 @@ export interface components {
             /** Reference */
             reference: string | null;
         };
+        /** PendingSpending */
+        PendingSpending: {
+            /** Amount */
+            amount: string;
+            /** Count */
+            count: number;
+        };
+        /** PendingTime */
+        PendingTime: {
+            /** Count */
+            count: number;
+            /**
+             * Hours
+             * @description Regular and overtime hours together.
+             */
+            hours: string;
+        };
+        /** PeriodRead */
+        PeriodRead: {
+            /**
+             * Days
+             * @description How many days it covers, both ends included.
+             */
+            days: number;
+            /**
+             * End
+             * Format: date
+             */
+            end: string;
+            /**
+             * Start
+             * Format: date
+             */
+            start: string;
+        };
         /**
          * Permission
          * @enum {string}
          */
-        Permission: "organization:read" | "organization:update" | "members:read" | "members:manage" | "audit:read" | "customers:read" | "customers:write" | "buildings:read" | "buildings:write" | "vendors:read" | "vendors:write" | "employees:read" | "employees:write" | "employees:read_compensation" | "contracts:read" | "contracts:write" | "work_orders:read" | "work_orders:write" | "schedule:read" | "schedule:write" | "timesheets:read" | "timesheets:write" | "timesheets:approve" | "expenses:read" | "expenses:write" | "expenses:approve" | "invoices:read" | "platform:organizations";
+        Permission: "organization:read" | "organization:update" | "members:read" | "members:manage" | "audit:read" | "customers:read" | "customers:write" | "buildings:read" | "buildings:write" | "vendors:read" | "vendors:write" | "employees:read" | "employees:write" | "employees:read_compensation" | "contracts:read" | "contracts:write" | "work_orders:read" | "work_orders:write" | "schedule:read" | "schedule:write" | "timesheets:read" | "timesheets:write" | "timesheets:approve" | "expenses:read" | "expenses:write" | "expenses:approve" | "invoices:read" | "dashboard:read" | "platform:organizations";
         /** PlatformOrganizationRead */
         PlatformOrganizationRead: {
             /**
@@ -2530,6 +2936,12 @@ export interface components {
              */
             updated_at: string;
         };
+        /** PriorityCount */
+        PriorityCount: {
+            /** Count */
+            count: number;
+            priority: components["schemas"]["WorkOrderPriority"];
+        };
         /**
          * Problem
          * @description Error body returned by every failing endpoint.
@@ -2553,12 +2965,58 @@ export interface components {
              */
             type: string;
         };
+        /** ProfitLine */
+        ProfitLine: {
+            /** Expense Cost */
+            expense_cost: string;
+            /** Labor Cost */
+            labor_cost: string;
+            /** Margin */
+            margin: string;
+            /**
+             * Margin Percent
+             * @description Null when there is no revenue.
+             */
+            margin_percent: string | null;
+            /** Operating Cost */
+            operating_cost: string;
+            /** Revenue */
+            revenue: string;
+        };
+        /**
+         * RateFigure
+         * @description A percentage for the period, beside the same percentage for the period before it.
+         */
+        RateFigure: {
+            /**
+             * Change
+             * @description In percentage points. Null unless both periods have a percentage.
+             */
+            change: string | null;
+            /** Previous */
+            previous: string | null;
+            /** Value */
+            value: string | null;
+        };
         /** Readiness */
         Readiness: {
             /** Database */
             database: string;
             /** Status */
             status: string;
+        };
+        /** RecordCount */
+        RecordCount: {
+            /**
+             * Active
+             * @description Those of them whose status is active.
+             */
+            active: number;
+            /**
+             * Total
+             * @description Every one that is not archived.
+             */
+            total: number;
         };
         /** Rejection */
         Rejection: {
@@ -2660,6 +3118,32 @@ export interface components {
             starts_at?: string | null;
             /** @description Scheduled, completed or missed. Cancelling a shift has its own endpoint. */
             status?: components["schemas"]["ShiftStatus"] | null;
+        };
+        /** StatusCount */
+        StatusCount: {
+            /** Count */
+            count: number;
+            status: components["schemas"]["WorkOrderStatus"];
+        };
+        /**
+         * SummaryScope
+         * @description What the figures were narrowed to, and which of them could not be.
+         */
+        SummaryScope: {
+            /** Building Id */
+            building_id: string | null;
+            /**
+             * By Contract
+             * @description Figures a building filter narrows only as far as the contracts that cover the building. An invoice is counted in full, though its contract may cover other buildings too.
+             */
+            by_contract: ("revenue" | "margin" | "margin_percent" | "collected" | "invoices_outstanding" | "invoices_overdue" | "employees" | "vendors")[];
+            /** Customer Id */
+            customer_id: string | null;
+            /**
+             * Organization Wide
+             * @description Figures the filters in force cannot narrow. They are for the whole organization.
+             */
+            organization_wide: ("revenue" | "margin" | "margin_percent" | "collected" | "invoices_outstanding" | "invoices_overdue" | "employees" | "vendors")[];
         };
         /** SwitchOrganizationRequest */
         SwitchOrganizationRequest: {
@@ -4594,6 +5078,364 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CustomerRead"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    read_dashboard_buildings: {
+        parameters: {
+            query: {
+                /** @description First day of the period, where the organization is. */
+                from: string;
+                /** @description Last day of the period, included. At most three years after the first. */
+                to: string;
+                customer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardBuildings"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    read_dashboard_contracts: {
+        parameters: {
+            query: {
+                /** @description First day of the period, where the organization is. */
+                from: string;
+                /** @description Last day of the period, included. At most three years after the first. */
+                to: string;
+                customer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardContracts"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    read_dashboard_summary: {
+        parameters: {
+            query: {
+                /** @description First day of the period, where the organization is. */
+                from: string;
+                /** @description Last day of the period, included. At most three years after the first. */
+                to: string;
+                /** @description Narrows costs, approvals and work orders to this building, and invoices to those of the contracts that cover it. */
+                building_id?: string | null;
+                /** @description Narrows costs, approvals and work orders to this customer's buildings, and invoices to this customer's. */
+                customer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardSummary"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    read_dashboard_trends: {
+        parameters: {
+            query?: {
+                /** @description How many calendar months, counting the one still running. */
+                months?: number;
+                building_id?: string | null;
+                customer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardTrends"];
+                };
+            };
+            /** @description Not signed in, or the session has ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Signed in, but not allowed to do this */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found in the active organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflicts with existing data */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    read_dashboard_work_orders: {
+        parameters: {
+            query: {
+                /** @description First day of the period, where the organization is. */
+                from: string;
+                /** @description Last day of the period, included. At most three years after the first. */
+                to: string;
+                building_id?: string | null;
+                customer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardWorkOrders"];
                 };
             };
             /** @description Not signed in, or the session has ended */

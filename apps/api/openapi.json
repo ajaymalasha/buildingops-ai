@@ -214,6 +214,55 @@
         "title": "BillingModel",
         "type": "string"
       },
+      "BuildingCost": {
+        "properties": {
+          "building": {
+            "$ref": "#/components/schemas/BuildingSummary"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/CustomerSummary"
+          },
+          "expense_cost": {
+            "title": "Expense Cost",
+            "type": "string"
+          },
+          "labor_cost": {
+            "title": "Labor Cost",
+            "type": "string"
+          },
+          "labor_hours": {
+            "description": "Approved regular and overtime hours.",
+            "title": "Labor Hours",
+            "type": "string"
+          },
+          "operating_cost": {
+            "title": "Operating Cost",
+            "type": "string"
+          },
+          "work_orders_completed": {
+            "description": "In the period.",
+            "title": "Work Orders Completed",
+            "type": "integer"
+          },
+          "work_orders_open": {
+            "description": "As of today.",
+            "title": "Work Orders Open",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "building",
+          "customer",
+          "labor_cost",
+          "expense_cost",
+          "operating_cost",
+          "labor_hours",
+          "work_orders_open",
+          "work_orders_completed"
+        ],
+        "title": "BuildingCost",
+        "type": "object"
+      },
       "BuildingCreate": {
         "additionalProperties": false,
         "properties": {
@@ -733,6 +782,23 @@
         "title": "BuildingUpdate",
         "type": "object"
       },
+      "CategoryCount": {
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/WorkOrderCategory"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "category",
+          "count"
+        ],
+        "title": "CategoryCount",
+        "type": "object"
+      },
       "ChangePasswordRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1036,6 +1102,64 @@
           "buildings"
         ],
         "title": "ContractDetail",
+        "type": "object"
+      },
+      "ContractProfit": {
+        "properties": {
+          "billing_model": {
+            "$ref": "#/components/schemas/BillingModel"
+          },
+          "contract": {
+            "$ref": "#/components/schemas/ContractRef"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/CustomerSummary"
+          },
+          "expense_cost": {
+            "title": "Expense Cost",
+            "type": "string"
+          },
+          "labor_cost": {
+            "title": "Labor Cost",
+            "type": "string"
+          },
+          "margin": {
+            "title": "Margin",
+            "type": "string"
+          },
+          "margin_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when there is no revenue.",
+            "title": "Margin Percent"
+          },
+          "operating_cost": {
+            "title": "Operating Cost",
+            "type": "string"
+          },
+          "revenue": {
+            "title": "Revenue",
+            "type": "string"
+          }
+        },
+        "required": [
+          "revenue",
+          "labor_cost",
+          "expense_cost",
+          "operating_cost",
+          "margin",
+          "margin_percent",
+          "contract",
+          "customer",
+          "billing_model"
+        ],
+        "title": "ContractProfit",
         "type": "object"
       },
       "ContractRead": {
@@ -1363,6 +1487,82 @@
           }
         },
         "title": "ContractUpdate",
+        "type": "object"
+      },
+      "CostShare": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "const": "labor",
+                "type": "string"
+              },
+              {
+                "$ref": "#/components/schemas/ExpenseCategory"
+              }
+            ],
+            "title": "Category"
+          },
+          "share_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Of operating cost. Null when nothing was spent.",
+            "title": "Share Percent"
+          }
+        },
+        "required": [
+          "category",
+          "amount",
+          "share_percent"
+        ],
+        "title": "CostShare",
+        "type": "object"
+      },
+      "CountFigure": {
+        "description": "A count for the period, beside the same count for the period before it.",
+        "properties": {
+          "change": {
+            "title": "Change",
+            "type": "integer"
+          },
+          "change_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when `previous` is zero.",
+            "title": "Change Percent"
+          },
+          "previous": {
+            "title": "Previous",
+            "type": "integer"
+          },
+          "value": {
+            "title": "Value",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "value",
+          "previous",
+          "change",
+          "change_percent"
+        ],
+        "title": "CountFigure",
         "type": "object"
       },
       "CustomerCreate": {
@@ -1894,6 +2094,274 @@
           }
         },
         "title": "CustomerUpdate",
+        "type": "object"
+      },
+      "DashboardBuildings": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "buildings": {
+            "description": "Buildings with costs, hours or work orders to show, costliest first. At most 50.",
+            "items": {
+              "$ref": "#/components/schemas/BuildingCost"
+            },
+            "title": "Buildings",
+            "type": "array"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/PeriodRead"
+          }
+        },
+        "required": [
+          "period",
+          "as_of",
+          "currency",
+          "buildings"
+        ],
+        "title": "DashboardBuildings",
+        "type": "object"
+      },
+      "DashboardContracts": {
+        "properties": {
+          "contracts": {
+            "description": "Contracts with revenue or costs in the period, largest margin first.",
+            "items": {
+              "$ref": "#/components/schemas/ContractProfit"
+            },
+            "title": "Contracts",
+            "type": "array"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/PeriodRead"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/ProfitLine",
+            "description": "Every line above together. They come to the summary's figures for the same period and customer."
+          },
+          "unattributed": {
+            "$ref": "#/components/schemas/ProfitLine",
+            "description": "Invoices, time and expenses in the period that name no contract."
+          }
+        },
+        "required": [
+          "period",
+          "currency",
+          "contracts",
+          "unattributed",
+          "totals"
+        ],
+        "title": "DashboardContracts",
+        "type": "object"
+      },
+      "DashboardSummary": {
+        "properties": {
+          "as_of": {
+            "description": "Today, where the organization is.",
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "buildings": {
+            "$ref": "#/components/schemas/RecordCount"
+          },
+          "collected": {
+            "$ref": "#/components/schemas/MoneyFigure",
+            "description": "Payments, by the day they were received."
+          },
+          "cost_by_category": {
+            "description": "Operating cost for the period: labor, then each kind of expense.",
+            "items": {
+              "$ref": "#/components/schemas/CostShare"
+            },
+            "title": "Cost By Category",
+            "type": "array"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "employees": {
+            "$ref": "#/components/schemas/RecordCount"
+          },
+          "expense_cost": {
+            "$ref": "#/components/schemas/MoneyFigure",
+            "description": "Amounts of approved expenses, by the day incurred."
+          },
+          "expenses_pending": {
+            "$ref": "#/components/schemas/PendingSpending"
+          },
+          "invoices_outstanding": {
+            "$ref": "#/components/schemas/InvoicesOwed",
+            "description": "Issued, with a balance due."
+          },
+          "invoices_overdue": {
+            "$ref": "#/components/schemas/InvoicesOwed",
+            "description": "Those of the outstanding invoices that were due before today."
+          },
+          "labor_cost": {
+            "$ref": "#/components/schemas/MoneyFigure",
+            "description": "Labor cost of approved timesheets, by the day worked."
+          },
+          "margin": {
+            "$ref": "#/components/schemas/MoneyFigure",
+            "description": "Revenue less operating cost."
+          },
+          "margin_percent": {
+            "$ref": "#/components/schemas/RateFigure",
+            "description": "Margin as a percentage of revenue."
+          },
+          "operating_cost": {
+            "$ref": "#/components/schemas/MoneyFigure",
+            "description": "Labor cost and expense cost together."
+          },
+          "period": {
+            "$ref": "#/components/schemas/PeriodRead"
+          },
+          "previous_period": {
+            "$ref": "#/components/schemas/PeriodRead",
+            "description": "The period of the same length that ends the day before `period` starts."
+          },
+          "revenue": {
+            "$ref": "#/components/schemas/MoneyFigure",
+            "description": "Totals of invoices that are issued or paid, by the day they were issued."
+          },
+          "scope": {
+            "$ref": "#/components/schemas/SummaryScope"
+          },
+          "timesheets_pending": {
+            "$ref": "#/components/schemas/PendingTime"
+          },
+          "vendors": {
+            "$ref": "#/components/schemas/RecordCount"
+          },
+          "work_orders_completed": {
+            "$ref": "#/components/schemas/CountFigure"
+          },
+          "work_orders_open": {
+            "description": "Open, scheduled, in progress or on hold.",
+            "title": "Work Orders Open",
+            "type": "integer"
+          },
+          "work_orders_overdue": {
+            "description": "Those of the open ones due before today.",
+            "title": "Work Orders Overdue",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "period",
+          "previous_period",
+          "as_of",
+          "currency",
+          "scope",
+          "revenue",
+          "labor_cost",
+          "expense_cost",
+          "operating_cost",
+          "margin",
+          "margin_percent",
+          "collected",
+          "work_orders_completed",
+          "cost_by_category",
+          "invoices_outstanding",
+          "invoices_overdue",
+          "work_orders_open",
+          "work_orders_overdue",
+          "timesheets_pending",
+          "expenses_pending",
+          "buildings",
+          "employees",
+          "vendors"
+        ],
+        "title": "DashboardSummary",
+        "type": "object"
+      },
+      "DashboardTrends": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "months": {
+            "description": "Oldest first.",
+            "items": {
+              "$ref": "#/components/schemas/MonthTrend"
+            },
+            "title": "Months",
+            "type": "array"
+          }
+        },
+        "required": [
+          "as_of",
+          "currency",
+          "months"
+        ],
+        "title": "DashboardTrends",
+        "type": "object"
+      },
+      "DashboardWorkOrders": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "by_status": {
+            "description": "Every work order as it stands today, whatever the period.",
+            "items": {
+              "$ref": "#/components/schemas/StatusCount"
+            },
+            "title": "By Status",
+            "type": "array"
+          },
+          "opened": {
+            "description": "Raised in the period.",
+            "title": "Opened",
+            "type": "integer"
+          },
+          "opened_by_category": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryCount"
+            },
+            "title": "Opened By Category",
+            "type": "array"
+          },
+          "opened_by_priority": {
+            "items": {
+              "$ref": "#/components/schemas/PriorityCount"
+            },
+            "title": "Opened By Priority",
+            "type": "array"
+          },
+          "period": {
+            "$ref": "#/components/schemas/PeriodRead"
+          }
+        },
+        "required": [
+          "period",
+          "as_of",
+          "by_status",
+          "opened",
+          "opened_by_category",
+          "opened_by_priority"
+        ],
+        "title": "DashboardWorkOrders",
         "type": "object"
       },
       "DecisionStatus": {
@@ -3465,6 +3933,25 @@
         "title": "InvoiceStatus",
         "type": "string"
       },
+      "InvoicesOwed": {
+        "properties": {
+          "amount": {
+            "description": "What is still owed on them.",
+            "title": "Amount",
+            "type": "string"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "amount"
+        ],
+        "title": "InvoicesOwed",
+        "type": "object"
+      },
       "JobRoleCreate": {
         "additionalProperties": false,
         "properties": {
@@ -4021,6 +4508,119 @@
           "role"
         ],
         "title": "MembershipSummary",
+        "type": "object"
+      },
+      "MoneyFigure": {
+        "description": "An amount for the period, beside the same amount for the period before it.",
+        "properties": {
+          "change": {
+            "description": "`value` less `previous`.",
+            "title": "Change",
+            "type": "string"
+          },
+          "change_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The change as a percentage of the size of `previous`. Null when `previous` is zero.",
+            "title": "Change Percent"
+          },
+          "previous": {
+            "title": "Previous",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "previous",
+          "change",
+          "change_percent"
+        ],
+        "title": "MoneyFigure",
+        "type": "object"
+      },
+      "MonthTrend": {
+        "properties": {
+          "end": {
+            "description": "The last day counted: today, for the month still running.",
+            "format": "date",
+            "title": "End",
+            "type": "string"
+          },
+          "expense_cost": {
+            "title": "Expense Cost",
+            "type": "string"
+          },
+          "is_partial": {
+            "description": "True for the month still running.",
+            "title": "Is Partial",
+            "type": "boolean"
+          },
+          "labor_cost": {
+            "title": "Labor Cost",
+            "type": "string"
+          },
+          "margin": {
+            "title": "Margin",
+            "type": "string"
+          },
+          "margin_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin Percent"
+          },
+          "month": {
+            "description": "Its first day.",
+            "format": "date",
+            "title": "Month",
+            "type": "string"
+          },
+          "operating_cost": {
+            "title": "Operating Cost",
+            "type": "string"
+          },
+          "revenue": {
+            "title": "Revenue",
+            "type": "string"
+          },
+          "work_orders_completed": {
+            "title": "Work Orders Completed",
+            "type": "integer"
+          },
+          "work_orders_opened": {
+            "title": "Work Orders Opened",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "month",
+          "end",
+          "is_partial",
+          "revenue",
+          "labor_cost",
+          "expense_cost",
+          "operating_cost",
+          "margin",
+          "margin_percent",
+          "work_orders_opened",
+          "work_orders_completed"
+        ],
+        "title": "MonthTrend",
         "type": "object"
       },
       "OrganizationCreate": {
@@ -4751,6 +5351,69 @@
         "title": "PaymentRead",
         "type": "object"
       },
+      "PendingSpending": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "amount"
+        ],
+        "title": "PendingSpending",
+        "type": "object"
+      },
+      "PendingTime": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "hours": {
+            "description": "Regular and overtime hours together.",
+            "title": "Hours",
+            "type": "string"
+          }
+        },
+        "required": [
+          "count",
+          "hours"
+        ],
+        "title": "PendingTime",
+        "type": "object"
+      },
+      "PeriodRead": {
+        "properties": {
+          "days": {
+            "description": "How many days it covers, both ends included.",
+            "title": "Days",
+            "type": "integer"
+          },
+          "end": {
+            "format": "date",
+            "title": "End",
+            "type": "string"
+          },
+          "start": {
+            "format": "date",
+            "title": "Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "days"
+        ],
+        "title": "PeriodRead",
+        "type": "object"
+      },
       "Permission": {
         "enum": [
           "organization:read",
@@ -4780,6 +5443,7 @@
           "expenses:write",
           "expenses:approve",
           "invoices:read",
+          "dashboard:read",
           "platform:organizations"
         ],
         "title": "Permission",
@@ -4852,6 +5516,23 @@
         "title": "PlatformOrganizationRead",
         "type": "object"
       },
+      "PriorityCount": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/WorkOrderPriority"
+          }
+        },
+        "required": [
+          "priority",
+          "count"
+        ],
+        "title": "PriorityCount",
+        "type": "object"
+      },
       "Problem": {
         "description": "Error body returned by every failing endpoint.",
         "properties": {
@@ -4917,6 +5598,98 @@
         "title": "Problem",
         "type": "object"
       },
+      "ProfitLine": {
+        "properties": {
+          "expense_cost": {
+            "title": "Expense Cost",
+            "type": "string"
+          },
+          "labor_cost": {
+            "title": "Labor Cost",
+            "type": "string"
+          },
+          "margin": {
+            "title": "Margin",
+            "type": "string"
+          },
+          "margin_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when there is no revenue.",
+            "title": "Margin Percent"
+          },
+          "operating_cost": {
+            "title": "Operating Cost",
+            "type": "string"
+          },
+          "revenue": {
+            "title": "Revenue",
+            "type": "string"
+          }
+        },
+        "required": [
+          "revenue",
+          "labor_cost",
+          "expense_cost",
+          "operating_cost",
+          "margin",
+          "margin_percent"
+        ],
+        "title": "ProfitLine",
+        "type": "object"
+      },
+      "RateFigure": {
+        "description": "A percentage for the period, beside the same percentage for the period before it.",
+        "properties": {
+          "change": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "In percentage points. Null unless both periods have a percentage.",
+            "title": "Change"
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "value",
+          "previous",
+          "change"
+        ],
+        "title": "RateFigure",
+        "type": "object"
+      },
       "Readiness": {
         "properties": {
           "database": {
@@ -4933,6 +5706,26 @@
           "database"
         ],
         "title": "Readiness",
+        "type": "object"
+      },
+      "RecordCount": {
+        "properties": {
+          "active": {
+            "description": "Those of them whose status is active.",
+            "title": "Active",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Every one that is not archived.",
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "active"
+        ],
+        "title": "RecordCount",
         "type": "object"
       },
       "Rejection": {
@@ -5184,6 +5977,96 @@
           }
         },
         "title": "ShiftUpdate",
+        "type": "object"
+      },
+      "StatusCount": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkOrderStatus"
+          }
+        },
+        "required": [
+          "status",
+          "count"
+        ],
+        "title": "StatusCount",
+        "type": "object"
+      },
+      "SummaryScope": {
+        "description": "What the figures were narrowed to, and which of them could not be.",
+        "properties": {
+          "building_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Building Id"
+          },
+          "by_contract": {
+            "description": "Figures a building filter narrows only as far as the contracts that cover the building. An invoice is counted in full, though its contract may cover other buildings too.",
+            "items": {
+              "enum": [
+                "revenue",
+                "margin",
+                "margin_percent",
+                "collected",
+                "invoices_outstanding",
+                "invoices_overdue",
+                "employees",
+                "vendors"
+              ],
+              "type": "string"
+            },
+            "title": "By Contract",
+            "type": "array"
+          },
+          "customer_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Id"
+          },
+          "organization_wide": {
+            "description": "Figures the filters in force cannot narrow. They are for the whole organization.",
+            "items": {
+              "enum": [
+                "revenue",
+                "margin",
+                "margin_percent",
+                "collected",
+                "invoices_outstanding",
+                "invoices_overdue",
+                "employees",
+                "vendors"
+              ],
+              "type": "string"
+            },
+            "title": "Organization Wide",
+            "type": "array"
+          }
+        },
+        "required": [
+          "building_id",
+          "customer_id",
+          "organization_wide",
+          "by_contract"
+        ],
+        "title": "SummaryScope",
         "type": "object"
       },
       "SwitchOrganizationRequest": {
@@ -9294,6 +10177,651 @@
         "summary": "Update a customer",
         "tags": [
           "customers"
+        ]
+      }
+    },
+    "/api/v1/dashboard/buildings": {
+      "get": {
+        "description": "A period is a run of calendar days where the organization is, from `from` to `to`, both included, and at most three years long. The 50 costliest buildings, costliest first.",
+        "operationId": "read_dashboard_buildings",
+        "parameters": [
+          {
+            "description": "First day of the period, where the organization is.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "description": "First day of the period, where the organization is.",
+              "format": "date",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last day of the period, included. At most three years after the first.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "description": "Last day of the period, included. At most three years after the first.",
+              "format": "date",
+              "title": "To",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "customer_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardBuildings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "What each building cost, and the work at it",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/dashboard/contracts": {
+      "get": {
+        "description": "A period is a run of calendar days where the organization is, from `from` to `to`, both included, and at most three years long. Invoices, time and expenses that name no contract are reported together on a line of their own, so that the lines come to the organization's totals.",
+        "operationId": "read_dashboard_contracts",
+        "parameters": [
+          {
+            "description": "First day of the period, where the organization is.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "description": "First day of the period, where the organization is.",
+              "format": "date",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last day of the period, included. At most three years after the first.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "description": "Last day of the period, included. At most three years after the first.",
+              "format": "date",
+              "title": "To",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "customer_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardContracts"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "What each contract earned and cost",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/dashboard/summary": {
+      "get": {
+        "description": "A period is a run of calendar days where the organization is, from `from` to `to`, both included, and at most three years long. Revenue, costs, margin, collections and completed work orders are for the period, each beside the same figure for the period of equal length just before it. Outstanding and overdue invoices, pending approvals, open and overdue work orders and the counts of buildings, employees and vendors are as of today.",
+        "operationId": "read_dashboard_summary",
+        "parameters": [
+          {
+            "description": "First day of the period, where the organization is.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "description": "First day of the period, where the organization is.",
+              "format": "date",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last day of the period, included. At most three years after the first.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "description": "Last day of the period, included. At most three years after the first.",
+              "format": "date",
+              "title": "To",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Narrows costs, approvals and work orders to this building, and invoices to those of the contracts that cover it.",
+            "in": "query",
+            "name": "building_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Narrows costs, approvals and work orders to this building, and invoices to those of the contracts that cover it.",
+              "title": "Building Id"
+            }
+          },
+          {
+            "description": "Narrows costs, approvals and work orders to this customer's buildings, and invoices to this customer's.",
+            "in": "query",
+            "name": "customer_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Narrows costs, approvals and work orders to this customer's buildings, and invoices to this customer's.",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "What the business earned, spent and is waiting on",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/dashboard/trends": {
+      "get": {
+        "description": "The last `months` calendar months, oldest first, ending with the month still running. That one is flagged, and stops at today.",
+        "operationId": "read_dashboard_trends",
+        "parameters": [
+          {
+            "description": "How many calendar months, counting the one still running.",
+            "in": "query",
+            "name": "months",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "description": "How many calendar months, counting the one still running.",
+              "maximum": 36,
+              "minimum": 1,
+              "title": "Months",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "building_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Building Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "customer_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardTrends"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revenue, costs and work orders, month by month",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/dashboard/work-orders": {
+      "get": {
+        "description": "A period is a run of calendar days where the organization is, from `from` to `to`, both included, and at most three years long. The counts by status are of every work order as it stands today. The counts by category and by priority are of the work orders raised in the period.",
+        "operationId": "read_dashboard_work_orders",
+        "parameters": [
+          {
+            "description": "First day of the period, where the organization is.",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "description": "First day of the period, where the organization is.",
+              "format": "date",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last day of the period, included. At most three years after the first.",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "description": "Last day of the period, included. At most three years after the first.",
+              "format": "date",
+              "title": "To",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "building_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Building Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "customer_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardWorkOrders"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not signed in, or the session has ended"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Signed in, but not allowed to do this"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not found in the active organization"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflicts with existing data"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Work orders by status today, and those raised in a period",
+        "tags": [
+          "dashboard"
         ]
       }
     },

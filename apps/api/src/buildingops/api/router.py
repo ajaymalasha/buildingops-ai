@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from buildingops.core.errors import Problem
+from buildingops.modules.analytics.router import router as dashboard_router
 from buildingops.modules.audit.router import router as audit_router
 from buildingops.modules.buildings.router import router as buildings_router
 from buildingops.modules.contracts.router import router as contracts_router
@@ -48,6 +49,7 @@ for module_router in (
     timesheets_router,
     expenses_router,
     invoices_router,
+    dashboard_router,
     platform_router,
 ):
     api_v1.include_router(module_router)

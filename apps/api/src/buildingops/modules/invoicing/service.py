@@ -31,7 +31,8 @@ from buildingops.modules.sequences.service import CodeSeries
 
 INVOICE_NUMBERS = CodeSeries("invoice", "INV")
 
-_BALANCE_DUE = Invoice.total - Invoice.amount_paid
+# What is still owed on an invoice. The dashboard adds up the same expression.
+BALANCE_DUE = Invoice.total - Invoice.amount_paid
 
 _SORTABLE: dict[str, SortKey] = {
     # Shorter numbers first, so that INV-10000 comes after INV-9999.
@@ -39,16 +40,19 @@ _SORTABLE: dict[str, SortKey] = {
     "issue_date": Invoice.issue_date,
     "due_date": Invoice.due_date,
     "total": Invoice.total,
-    "balance_due": _BALANCE_DUE,
+    "balance_due": BALANCE_DUE,
 }
 
 
-def _overdue(today: date) -> ColumnElement[bool]:
+def overdue(today: date) -> ColumnElement[bool]:
     """Sent to the customer, not paid in full, and past its due date on `today`. Never
-    null, so it can be negated: a draft has no due date and is simply not overdue."""
+    null, so it can be negated: a draft has no due date and is simply not overdue.
+
+    The dashboard counts overdue invoices with this same condition, so its count is the
+    list's."""
     return and_(
         Invoice.status == InvoiceStatus.ISSUED,
-        _BALANCE_DUE > 0,
+        BALANCE_DUE > 0,
         Invoice.due_date.is_not(None),
         Invoice.due_date < today,
     )
@@ -62,8 +66,8 @@ def _invoices(ctx: Context, today: date) -> Select[Invoice, Customer, Contract, 
             Invoice,
             Customer,
             Contract,
-            _BALANCE_DUE.label("balance_due"),
-            _overdue(today).label("is_overdue"),
+            BALANCE_DUE.label("balance_due"),
+            overdue(today).label("is_overdue"),
         )
         .join(Customer, Customer.id == Invoice.customer_id)
         .outerjoin(Contract, Contract.id == Invoice.contract_id)
@@ -97,7 +101,7 @@ def list_invoices(ctx: Context, filters: InvoiceFilters) -> tuple[list[InvoiceRe
     if filters.contract_id:
         statement = statement.where(Invoice.contract_id == filters.contract_id)
     if filters.overdue is not None:
-        statement = statement.where(_overdue(today) if filters.overdue else not_(_overdue(today)))
+        statement = statement.where(overdue(today) if filters.overdue else not_(overdue(today)))
     statement = between_dates(statement, Invoice.issue_date, filters.from_, filters.to)
     statement = apply_sort(
         statement, filters.sort, allowed=_SORTABLE, default="-number", tiebreaker=Invoice.id
