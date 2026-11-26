@@ -22,6 +22,17 @@ const PERMISSION_PHRASES: Record<Permission, string> = {
   "members:read": "See who has access",
   "members:manage": "Add members and change their roles",
   "audit:read": "Read the audit log",
+  "customers:read": "View customers",
+  "customers:write": "Add and edit customers",
+  "buildings:read": "View buildings",
+  "buildings:write": "Add and edit buildings",
+  "vendors:read": "View vendors",
+  "vendors:write": "Add and edit vendors",
+  "employees:read": "View employees and job roles",
+  "employees:write": "Add and edit employees and job roles",
+  "employees:read_compensation": "See and set pay rates",
+  "contracts:read": "View contracts",
+  "contracts:write": "Add and edit contracts",
   "platform:organizations": "Manage organizations across the platform",
 };
 

@@ -22,7 +22,8 @@ honest: nothing is listed as working unless it is implemented and tested.
 | Member management, organization settings, platform administration | **Working** |
 | Append-only audit log with field-level change history | **Working** |
 | Web app shell, design system, typed API client | **Working** |
-| Operations data spine (buildings, customers, vendors, employees, contracts, work orders) | Planned next |
+| Master data API: customers, buildings, vendors, job roles, employees, building assignments, contracts | **Working** (API and demo data; screens come next) |
+| Work orders and the other operational records | Planned next |
 | Executive dashboard, data import, entity resolution | Planned |
 | Workforce workflows, cost-plus billing | Planned |
 | RFP automation, voice agent, training studio (Claude) | Planned |

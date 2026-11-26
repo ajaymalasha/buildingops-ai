@@ -1,7 +1,9 @@
 """The active organization's profile, and platform-level organization management."""
 
 import re
+from datetime import date, datetime
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select
 
@@ -38,6 +40,11 @@ def get_current(ctx: Context) -> Organization:
     if organization is None:
         raise NotFoundError("Organization not found.")
     return organization
+
+
+def today(ctx: Context) -> date:
+    """Today's date where the organization works, which near midnight is not the server's."""
+    return datetime.now(ZoneInfo(get_current(ctx).timezone)).date()
 
 
 def update_current(ctx: Context, data: OrganizationUpdate) -> Organization:

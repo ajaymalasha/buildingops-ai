@@ -11,7 +11,9 @@
    `buildingops_test` databases. It needs a superuser: by default your operating-system
    user on a local server. Override with the standard `PGHOST`, `PGUSER`, `PGPASSWORD`.
 4. `make migrate` applies migrations as the owner role and grants the app role data access.
-5. `make seed` loads the demo organizations and accounts. It is safe to run again.
+5. `make seed` loads the demo organizations and accounts, and gives each organization its
+   master data: customers, buildings, vendors, employees and contracts. It is safe to run
+   again: an organization that already has customers is left as it is.
 
 ## Conventions
 
@@ -30,6 +32,10 @@
   field-level diff from `audit.changes_between`.
 - Raise the errors in `core/errors.py`. They become problem documents with stable codes.
 - Money is `Decimal` in Python and `NUMERIC` in the database. It is never a float.
+- A service for a tenant-owned record builds on `core/crud.py`. Look a record up with
+  `get_or_404` when the path names it and with `get_referenced` when the body does, lock it
+  (`for_update=True`) before checking what depends on it, and let `create`, `update` and
+  `archive` write the audit entry. `modules/customers` is a short, complete example.
 
 ### Adding a tenant table
 
@@ -50,6 +56,8 @@
 5. Run the tests. `test_schema_invariants.py` fails if the policy or the composite key is
    missing, or if the models and migrations disagree. Every migration is also run down and
    up again, so write the downgrade.
+6. That comparison does not see CHECK constraints or the condition of a partial index.
+   Give each one a case that breaks it, as `test_master_data_constraints.py` does.
 
 ### Web (`apps/web`)
 

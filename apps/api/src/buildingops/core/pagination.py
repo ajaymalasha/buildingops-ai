@@ -12,6 +12,8 @@ from buildingops.core.errors import ValidationFailedError
 MAX_PAGE_SIZE = 200
 
 type SortColumn = InstrumentedAttribute[Any] | ColumnElement[Any]
+# What a sort field orders by: one column, or several in order of significance.
+type SortKey = SortColumn | tuple[SortColumn, ...]
 
 
 class PageParams(BaseModel):
@@ -54,26 +56,32 @@ def apply_sort[*Ts](
     statement: Select[*Ts],
     sort: str | None,
     *,
-    allowed: Mapping[str, SortColumn],
+    allowed: Mapping[str, SortKey],
     default: str,
     tiebreaker: SortColumn,
 ) -> Select[*Ts]:
     """Order by a whitelisted field. `-name` sorts descending. Ties break on `tiebreaker`
-    so that pages are stable."""
+    so that pages are stable. A field may stand for several columns, such as a person's
+    name sorted by last name and then first name."""
     requested = sort or default
     descending = requested.startswith("-")
     key = requested.removeprefix("-")
-    column = allowed.get(key)
-    if column is None:
+    columns = allowed.get(key)
+    if columns is None:
         raise ValidationFailedError.for_field(
             "sort",
             f"Cannot sort by '{key}'. Allowed: {', '.join(sorted(allowed))}.",
             "invalid_sort",
         )
+    if not isinstance(columns, tuple):
+        columns = (columns,)
     # For a single column these return a UnaryExpression; the wider declared type only
     # covers tuple arguments, which are never passed here.
-    direction = cast("ColumnElement[Any]", desc(column) if descending else asc(column))
-    return statement.order_by(nulls_last(direction), tiebreaker)
+    order = [
+        nulls_last(cast("ColumnElement[Any]", desc(column) if descending else asc(column)))
+        for column in columns
+    ]
+    return statement.order_by(*order, tiebreaker)
 
 
 def search_pattern(query: str) -> str:
