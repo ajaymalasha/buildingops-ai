@@ -1,8 +1,14 @@
 import {
+  BriefcaseBusiness,
+  Building,
   Building2,
+  FilePenLine,
   Globe,
+  Handshake,
+  IdCard,
   LayoutDashboard,
   ScrollText,
+  Truck,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -29,6 +35,27 @@ export type NavSection = {
 export const NAVIGATION: NavSection[] = [
   {
     items: [{ label: "Overview", href: "/", icon: LayoutDashboard }],
+  },
+  {
+    label: "Operations",
+    items: [
+      { label: "Buildings", href: "/buildings", icon: Building, permission: "buildings:read" },
+      { label: "Customers", href: "/customers", icon: Handshake, permission: "customers:read" },
+      { label: "Contracts", href: "/contracts", icon: FilePenLine, permission: "contracts:read" },
+      { label: "Vendors", href: "/vendors", icon: Truck, permission: "vendors:read" },
+    ],
+  },
+  {
+    label: "Workforce",
+    items: [
+      { label: "Employees", href: "/employees", icon: IdCard, permission: "employees:read" },
+      {
+        label: "Job roles",
+        href: "/job-roles",
+        icon: BriefcaseBusiness,
+        permission: "employees:read",
+      },
+    ],
   },
   {
     label: "Administration",

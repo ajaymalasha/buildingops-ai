@@ -22,7 +22,7 @@ honest: nothing is listed as working unless it is implemented and tested.
 | Member management, organization settings, platform administration | **Working** |
 | Append-only audit log with field-level change history | **Working** |
 | Web app shell, design system, typed API client | **Working** |
-| Master data API: customers, buildings, vendors, job roles, employees, building assignments, contracts | **Working** (API and demo data; screens come next) |
+| Master data: customers, buildings, vendors, job roles, employees, building assignments, contracts | **Working** (API, screens and demo data) |
 | Work orders and the other operational records | Planned next |
 | Executive dashboard, data import, entity resolution | Planned |
 | Workforce workflows, cost-plus billing | Planned |
@@ -62,7 +62,7 @@ the password `BuildingOps-Demo-2026`.
 | --- | --- |
 | `dana.whitfield@meridianfs.example` | Company admin of two organizations (try the organization switcher) |
 | `marcus.okafor@meridianfs.example` | Operations manager |
-| `priya.raman@meridianfs.example` | Supervisor |
+| `priya.raman@meridianfs.example` | Supervisor: reads the directory, but sees no pay rates and no contracts |
 | `luis.ortega@meridianfs.example` | Employee |
 | `platform.admin@buildingops.example` | Platform admin: manages every organization |
 

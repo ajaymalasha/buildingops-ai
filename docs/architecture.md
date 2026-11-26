@@ -133,6 +133,17 @@ above and add a few of their own.
 - List state (search, filters, sort, page) lives in the URL.
 - The design system is a small set of owned components in `src/components/ui`, built on
   Radix primitives and Tailwind tokens defined in `src/app/globals.css`.
+- Every kind of master data has a list page and one form that both adds and edits. A form
+  too long for a dialog opens in a drawer beside the list. The browser checks only what it
+  can know (something was entered, a number looks like a number). Everything else is the
+  API's decision, and its answer is shown on the field it concerns.
+- Archiving asks first, in a dialog that says what archiving means. When the API refuses
+  because other records depend on the row, its explanation is shown in that dialog.
+- Amounts stay decimal strings from the API to the screen and back. They are formatted for
+  display and never become floating-point numbers.
+- What a role may not see is left out, not greyed out: without
+  `employees:read_compensation` there is no pay column, and without a write permission
+  there are no buttons that change anything. The API enforces the same rules on its own.
 
 ## Testing
 
@@ -141,8 +152,8 @@ above and add a few of their own.
 | API | Endpoints, permissions, tenancy, sessions, audit, against real PostgreSQL as the app role | `apps/api/tests` |
 | Schema invariants | Row-level security and model/migration drift; every migration runs down and up | `apps/api/tests/test_schema_invariants.py` |
 | Database rules | CHECK constraints, partial unique indexes and tenant-safe references, written to as the owner role | `apps/api/tests/test_master_data_constraints.py` |
-| Web unit and component | Proxy route, session handling, formatting, shared components | `apps/web/src/**/*.test.ts(x)` |
-| End to end | Sign-in, each role, tenant isolation, in a real browser against the real stack | `apps/web/e2e` |
+| Web unit and component | Proxy route, session handling, formatting, shared components, what each form checks and sends | `apps/web/src/**/*.test.ts(x)` |
+| End to end | Sign-in, each role, tenant isolation, and keeping master data, in a real browser against the real stack | `apps/web/e2e` |
 
 ## Planned (not built yet)
 

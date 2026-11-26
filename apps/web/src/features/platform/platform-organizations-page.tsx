@@ -1,7 +1,7 @@
 "use client";
 
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
-import { Ellipsis, Globe, Plus } from "lucide-react";
+import { Globe, Plus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -9,13 +9,7 @@ import { useCan, useMe } from "@/components/me-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable, type Column } from "@/components/ui/data-table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem, DropdownMenuSeparator, RowActions } from "@/components/ui/dropdown-menu";
 import { Select } from "@/components/ui/input";
 import { PageHeader, Panel } from "@/components/ui/page";
 import { Pagination } from "@/components/ui/pagination";
@@ -134,36 +128,26 @@ function PlatformOrganizations() {
       align: "end",
       width: "w-12",
       cell: (organization) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            aria-label={`Actions for ${organization.name}`}
-            className="inline-flex size-7 cursor-pointer items-center justify-center rounded-sm text-ink-subtle hover:bg-sunken hover:text-ink data-[state=open]:bg-sunken"
+        <RowActions label={`Actions for ${organization.name}`}>
+          <DropdownMenuItem
+            disabled={entering || organization.id === me.organization?.id}
+            onSelect={() => enter(organization)}
           >
-            <Ellipsis className="size-4" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              disabled={entering || organization.id === me.organization?.id}
-              onSelect={() => enter(organization)}
-            >
-              Open this organization
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              tone={organization.status === "active" ? "danger" : "default"}
-              onSelect={() =>
-                setStatus.mutate({
-                  params: { path: { organization_id: organization.id } },
-                  body: { status: organization.status === "active" ? "suspended" : "active" },
-                })
-              }
-            >
-              {organization.status === "active"
-                ? "Suspend organization"
-                : "Reactivate organization"}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            Open this organization
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            tone={organization.status === "active" ? "danger" : "default"}
+            onSelect={() =>
+              setStatus.mutate({
+                params: { path: { organization_id: organization.id } },
+                body: { status: organization.status === "active" ? "suspended" : "active" },
+              })
+            }
+          >
+            {organization.status === "active" ? "Suspend organization" : "Reactivate organization"}
+          </DropdownMenuItem>
+        </RowActions>
       ),
     },
   ];
