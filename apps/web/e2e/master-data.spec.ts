@@ -431,11 +431,15 @@ test.describe("a supervisor", () => {
     await signIn(page, ACCOUNTS.supervisor);
     await expect(mainNavigation(page).getByRole("link")).toHaveText([
       "Overview",
+      "Work orders",
       "Buildings",
       "Customers",
       "Vendors",
       "Employees",
+      "Schedule",
+      "Timesheets",
       "Job roles",
+      "Expenses",
       "Members",
       "Organization",
     ]);

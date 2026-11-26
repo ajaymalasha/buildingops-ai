@@ -75,6 +75,53 @@ export function daysFromNow(days: number): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+/** Where Meridian Facility Services works. Its days and its clock times are New York's. */
+export const ORGANIZATION_TIME_ZONE = "America/New_York";
+
+/**
+ * A calendar date a number of days from today where the organization is, in the form a
+ * date input takes. "Today" for a due date, a shift or a timesheet is the organization's,
+ * which for some hours of every day is not the date on the machine running the tests.
+ */
+export function organizationDay(days = 0, timeZone = ORGANIZATION_TIME_ZONE): string {
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone, dateStyle: "short" }).format(
+    new Date(),
+  );
+  const date = new Date(`${today}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+/** "Nov 26, 2026": a calendar date (YYYY-MM-DD) as the app shows it. */
+export function shownDay(date: string): string {
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" }).format(
+    new Date(`${date}T00:00:00Z`),
+  );
+}
+
+/** One of the choices of a segmented control, such as a tab of the timesheet queue. */
+export function segment(page: Page, name: string | RegExp) {
+  return page.getByRole("radio", { name });
+}
+
+/** An on-off filter in a list's toolbar, such as "Overdue only". */
+export function toggle(page: Page, name: string) {
+  return page.getByRole("checkbox", { name, exact: true });
+}
+
+/** "$1,284.50" as 128450 cents, so that amounts read off the screen can be added exactly. */
+export function cents(amount: string): number {
+  const [whole = "0", fraction = ""] = amount.replace(/[^0-9.]/g, "").split(".");
+  return Number(whole) * 100 + Number(fraction.padEnd(2, "0").slice(0, 2));
+}
+
+/**
+ * Headers for a request that changes something, made by a test rather than by the page.
+ * The web app refuses such a request unless it comes from its own pages, which a browser
+ * says with this header.
+ */
+export const FROM_THIS_SITE = { origin: "http://localhost:3100" };
+
 /**
  * Save a review screenshot when E2E_SCREENSHOT_DIR is set. Ordinary runs write nothing.
  * The screenshots are for people reviewing a change; they are never committed.

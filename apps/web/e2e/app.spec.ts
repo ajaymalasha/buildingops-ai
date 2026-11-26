@@ -59,12 +59,17 @@ test.describe("a company admin", () => {
     await expect(page.getByText("You're working in Meridian Facility Services.")).toBeVisible();
     await expect(mainNavigation(page).getByRole("link")).toHaveText([
       "Overview",
+      "Work orders",
       "Buildings",
       "Customers",
       "Contracts",
       "Vendors",
       "Employees",
+      "Schedule",
+      "Timesheets",
       "Job roles",
+      "Expenses",
+      "Invoices",
       "Members",
       "Organization",
       "Audit log",
